@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - BrutusWeb</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="mobile-container">
+    <!-- Cabeçalho -->
+    <header class="app-header">
+      <h1>Admin - Brutus Burger</h1>
+    </header>
+
+    <!-- Lista de Produtos -->
+    <section class="admin-products">
+      <h2>Gerenciar Produtos</h2>
+      <div id="products-list" class="products-list">
+        <!-- Produtos serão carregados aqui -->
+      </div>
+    </section>
+
+    <!-- Modal de Edição de Produto -->
+    <div id="edit-modal" class="modal">
+      <div class="modal-content image-modal">
+        <div class="modal-header">
+          <h2>Editar Produto</h2>
+          <button class="close-button">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="product-preview">
+            <div class="image-container">
+              <img id="edit-product-image" src="" alt="" class="preview-image draggable-image">
+              <div class="zoom-controls">
+                <button id="zoom-in-btn" class="zoom-button">+</button>
+                <button id="zoom-out-btn" class="zoom-button">-</button>
+                <button id="reset-zoom-btn" class="zoom-button">Reset</button>
+              </div>
+            </div>
+            <div class="product-details">
+              <h3 id="edit-product-name-display"></h3>
+              <div class="product-price" id="edit-product-price-display"></div>
+            </div>
+          </div>
+          
+          <!-- Formulário de Edição -->
+          <div class="edit-form">
+            <div class="form-group">
+              <label for="edit-product-name">Nome:</label>
+              <input type="text" id="edit-product-name" class="form-control">
+            </div>
+            
+            <div class="form-group">
+              <label for="edit-product-description">Descrição:</label>
+              <textarea id="edit-product-description" class="form-control" rows="3"></textarea>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="edit-product-price">Preço (R$):</label>
+                <input type="number" id="edit-product-price" class="form-control" step="0.01" min="0">
+              </div>
+              
+              <div class="form-group">
+                <label for="edit-product-category">Categoria:</label>
+                <input type="text" id="edit-product-category" class="form-control">
+              </div>
+            </div>
+            
+            <button id="save-product-btn" class="checkout-button">Salvar Alterações</button>
+          </div>
+          
+          <!-- Abas para diferentes métodos de imagem -->
+          <div class="image-tabs">
+            <button id="tab-upload" class="tab-btn active">Upload</button>
+            <button id="tab-url" class="tab-btn">URL</button>
+          </div>
+          
+          <!-- Conteúdo das abas -->
+          <div id="upload-content" class="tab-content active">
+            <div class="image-upload-section">
+              <label for="image-file">Selecionar Imagem:</label>
+              <input type="file" id="image-file" accept="image/*">
+              <button id="upload-image-btn" class="checkout-button">Fazer Upload</button>
+            </div>
+          </div>
+          
+          <div id="url-content" class="tab-content">
+            <div class="image-url-section">
+              <label for="image-url">URL da Imagem:</label>
+              <input type="text" id="image-url" placeholder="https://exemplo.com/imagem.jpg">
+              <button id="save-url-btn" class="checkout-button">Salvar URL</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Modal de Confirmação de Exclusão -->
+    <div id="delete-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Confirmar Exclusão</h2>
+          <button class="close-button">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p>Você tem certeza que deseja excluir o produto <strong id="delete-product-name"></strong>?</p>
+          <p>Esta ação não pode ser desfeita.</p>
+          <div class="modal-actions">
+            <button id="cancel-delete-btn" class="cancel-button">Cancelar</button>
+            <button id="confirm-delete-btn" class="delete-button">Excluir</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="admin.js"></script>
+</body>
+</html>

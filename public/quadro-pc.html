@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quadro de Pedidos - BrutusWeb (PC)</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /* Estilos específicos para a versão PC */
+    .pc-container {
+      max-width: 100%;
+      min-height: 100vh;
+      margin: 0 auto;
+      background: var(--bg-dark);
+      position: relative;
+      padding: 20px;
+    }
+    
+    .pc-header {
+      background: #000000;
+      color: var(--text-primary);
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--border-dark);
+      border-radius: var(--border-radius);
+      margin-bottom: 20px;
+    }
+    
+    .pc-header h1 {
+      font-size: 2rem;
+      font-weight: 600;
+    }
+    
+    .pc-header-actions {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    
+    .pc-refresh-btn {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--border-radius);
+      padding: 12px 20px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.3s;
+    }
+    
+    .pc-refresh-btn:hover {
+      background: var(--primary-dark);
+    }
+    
+    .auto-refresh-label {
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .auto-refresh-checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary-color);
+    }
+    
+    .pc-main-content {
+      display: flex;
+      gap: 20px;
+      height: calc(100vh - 180px);
+    }
+    
+    /* Painel lateral esquerdo - Filtros e resumo */
+    .pc-sidebar {
+      width: 300px;
+      background: var(--bg-card);
+      border-radius: var(--border-radius);
+      padding: 20px;
+      border: 1px solid var(--border-dark);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    
+    .pc-filters-section h2, .pc-summary-section h2 {
+      color: var(--text-primary);
+      margin-bottom: 15px;
+      font-size: 1.4rem;
+      border-bottom: 1px solid var(--border-dark);
+      padding-bottom: 10px;
+    }
+    
+    .pc-filter-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .pc-filter-btn {
+      padding: 12px 16px;
+      border: none;
+      border-radius: var(--border-radius);
+      background: #2d2d2d;
+      color: var(--text-secondary);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .pc-filter-btn.active {
+      background: var(--primary-color);
+      color: white;
+    }
+    
+    .pc-filter-btn:hover:not(.active) {
+      background: #3d3d3d;
+    }
+    
+    .pc-filter-count {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+    }
+    
+    .pc-summary-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    
+    .pc-summary-card {
+      background: #2d2d2d;
+      border-radius: var(--border-radius);
+      padding: 15px;
+      text-align: center;
+      border: 1px solid var(--border-dark);
+    }
+    
+    .pc-summary-card h3 {
+      color: var(--text-primary);
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+    }
+    
+    .pc-summary-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+    
+    /* Área principal - Quadro de pedidos */
+    .pc-orders-board {
+      flex: 1;
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      padding: 10px;
+    }
+    
+    .pc-order-column {
+      min-width: 300px;
+      background: var(--bg-card);
+      border-radius: var(--border-radius);
+      border: 1px solid var(--border-dark);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    
+    .pc-column-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-dark);
+      background: rgba(30, 30, 30, 0.7);
+      border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+    
+    .pc-column-title {
+      color: var(--text-primary);
+      font-size: 1.4rem;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .pc-column-count {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: bold;
+    }
+    
+    .pc-orders-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .pc-order-card {
+      background: #2d2d2d;
+      border-radius: var(--border-radius);
+      padding: 15px;
+      border: 1px solid var(--border-dark);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .pc-order-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      border-color: var(--primary-color);
+    }
+    
+    .pc-order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-dark);
+    }
+    
+    .pc-order-id {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    .pc-order-time {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    
+    .pc-order-details {
+      margin-bottom: 15px;
+    }
+    
+    .pc-customer-name {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 5px;
+    }
+    
+    .pc-order-items {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+    }
+    
+    .pc-order-total {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+    
+    .pc-order-status {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-align: center;
+    }
+    
+    /* Modal de detalhes do pedido - versão PC */
+    .pc-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      overflow-y: auto;
+    }
+    
+    .pc-modal.show {
+      display: block;
+    }
+    
+    .pc-modal-content {
+      background: var(--bg-card);
+      margin: 40px auto;
+      border-radius: var(--border-radius);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+      animation: modalSlideIn 0.3s ease;
+      border: 1px solid var(--border-dark);
+      max-width: 900px;
+    }
+    
+    .pc-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 25px;
+      border-bottom: 1px solid var(--border-dark);
+      background: rgba(30, 30, 30, 0.7);
+      border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+    
+    .pc-modal-header h2 {
+      font-size: 1.8rem;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    
+    .pc-close-button {
+      background: none;
+      border: none;
+      font-size: 2rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+      padding: 0;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .pc-close-button:hover {
+      color: var(--danger-color);
+    }
+    
+    .pc-modal-body {
+      padding: 25px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+    
+    .pc-order-details-section, .pc-order-actions-section {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+    
+    .pc-section-title {
+      color: var(--text-primary);
+      font-size: 1.4rem;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-dark);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .pc-customer-info, .pc-order-items-section, .pc-order-total-section {
+      background: #2d2d2d;
+      border-radius: var(--border-radius);
+      padding: 20px;
+      border: 1px solid var(--border-dark);
+    }
+    
+    .pc-info-item {
+      display: flex;
+      margin-bottom: 15px;
+    }
+    
+    .pc-info-label {
+      font-weight: 500;
+      color: var(--text-primary);
+      min-width: 120px;
+    }
+    
+    .pc-info-value {
+      color: var(--text-secondary);
+      flex: 1;
+    }
+    
+    .pc-items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .pc-item-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-dark);
+    }
+    
+    .pc-item-row:last-child {
+      border-bottom: none;
+    }
+    
+    .pc-item-details {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .pc-item-name {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    
+    .pc-item-quantity {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    
+    .pc-item-price {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    
+    .pc-total-amount {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      text-align: center;
+      margin: 15px 0;
+    }
+    
+    .pc-status-badge {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 1.1rem;
+      font-weight: 500;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .pc-action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .pc-action-btn {
+      padding: 15px;
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 1.1rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.3s ease;
+    }
+    
+    .pc-archive-btn {
+      background: #95a5a6;
+      color: white;
+    }
+    
+    .pc-archive-btn:hover {
+      background: #7f8c8d;
+    }
+    
+    .pc-delete-btn {
+      background: var(--danger-color);
+      color: white;
+    }
+    
+    .pc-delete-btn:hover {
+      background: #c0392b;
+    }
+    
+    .pc-print-btn {
+      background: #3498db;
+      color: white;
+    }
+    
+    .pc-print-btn:hover {
+      background: #2980b9;
+    }
+    
+    .pc-status-nav {
+      display: flex;
+      gap: 15px;
+      margin-top: 10px;
+    }
+    
+    .pc-status-btn {
+      flex: 1;
+      padding: 15px;
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+      background: var(--primary-color);
+      color: white;
+    }
+    
+    .pc-status-btn:hover {
+      background: var(--primary-dark);
+    }
+    
+    .pc-status-btn:disabled {
+      background: #3d3d3d;
+      cursor: not-allowed;
+    }
+    
+    /* Responsividade para telas menores */
+    @media (max-width: 1200px) {
+      .pc-main-content {
+        flex-direction: column;
+        height: auto;
+      }
+      
+      .pc-sidebar {
+        width: 100%;
+      }
+      
+      .pc-orders-board {
+        height: 500px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="pc-container">
+    <!-- Cabeçalho -->
+    <header class="pc-header">
+      <h1>Quadro de Pedidos - BrutusWeb</h1>
+      <div class="pc-header-actions">
+        <button id="refresh-btn" class="pc-refresh-btn">
+          <i class="fas fa-sync-alt"></i> Atualizar
+        </button>
+        <label class="auto-refresh-label">
+          <input type="checkbox" id="auto-refresh-checkbox" class="auto-refresh-checkbox" checked>
+          Atualização Automática
+        </label>
+        <button id="print-test-btn" class="pc-refresh-btn">
+          <i class="fas fa-print"></i> Testar Impressão
+        </button>
+      </div>
+    </header>
+
+    <div class="pc-main-content">
+      <!-- Painel lateral esquerdo -->
+      <div class="pc-sidebar">
+        <!-- Filtros -->
+        <div class="pc-filters-section">
+          <h2><i class="fas fa-filter"></i> Filtros</h2>
+          <div class="pc-filter-buttons">
+            <button class="pc-filter-btn active" data-filter="all">
+              Todos
+              <span class="pc-filter-count" id="all-count">0</span>
+            </button>
+            <button class="pc-filter-btn" data-filter="pending">
+              <span><i class="fas fa-clock"></i> Pendentes</span>
+              <span class="pc-filter-count" id="pending-count">0</span>
+            </button>
+            <button class="pc-filter-btn" data-filter="preparing">
+              <span><i class="fas fa-utensils"></i> Em Preparação</span>
+              <span class="pc-filter-count" id="preparing-count">0</span>
+            </button>
+            <button class="pc-filter-btn" data-filter="ready">
+              <span><i class="fas fa-check-circle"></i> Prontos</span>
+              <span class="pc-filter-count" id="ready-count">0</span>
+            </button>
+            <button class="pc-filter-btn" data-filter="delivered">
+              <span><i class="fas fa-truck"></i> Entregues</span>
+              <span class="pc-filter-count" id="delivered-count">0</span>
+            </button>
+            <button class="pc-filter-btn" data-filter="archived">
+              <span><i class="fas fa-archive"></i> Arquivados</span>
+              <span class="pc-filter-count" id="archived-count">0</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Resumo -->
+        <div class="pc-summary-section">
+          <h2><i class="fas fa-chart-bar"></i> Resumo</h2>
+          <div class="pc-summary-stats">
+            <div class="pc-summary-card">
+              <h3>Total Pedidos</h3>
+              <div class="pc-summary-value" id="total-orders">0</div>
+            </div>
+            <div class="pc-summary-card">
+              <h3>Total Valor</h3>
+              <div class="pc-summary-value" id="total-value">R$ 0,00</div>
+            </div>
+            <div class="pc-summary-card">
+              <h3>Pendentes</h3>
+              <div class="pc-summary-value" id="pending-orders">0</div>
+            </div>
+            <div class="pc-summary-card">
+              <h3>Em Preparo</h3>
+              <div class="pc-summary-value" id="preparing-orders">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Quadro de Pedidos -->
+      <div class="pc-orders-board">
+        <!-- Coluna de Pedidos Pendentes -->
+        <div class="pc-order-column" data-status="pending">
+          <div class="pc-column-header">
+            <h2 class="pc-column-title">
+              <i class="fas fa-clock"></i> Pendentes
+              <span class="pc-column-count" id="pending-column-count">0</span>
+            </h2>
+          </div>
+          <div class="pc-orders-container" id="pending-orders-container">
+            <!-- Pedidos pendentes serão carregados aqui -->
+          </div>
+        </div>
+
+        <!-- Coluna de Pedidos em Preparação (inicialmente oculta) -->
+        <div class="pc-order-column" data-status="preparing" id="preparing-column" style="display: none;">
+          <div class="pc-column-header">
+            <h2 class="pc-column-title">
+              <i class="fas fa-utensils"></i> Em Preparação
+              <span class="pc-column-count" id="preparing-column-count">0</span>
+            </h2>
+          </div>
+          <div class="pc-orders-container" id="preparing-orders-container">
+            <!-- Pedidos em preparação serão carregados aqui -->
+          </div>
+        </div>
+
+        <!-- Coluna de Pedidos Prontos -->
+        <div class="pc-order-column" data-status="ready">
+          <div class="pc-column-header">
+            <h2 class="pc-column-title">
+              <i class="fas fa-check-circle"></i> Prontos
+              <span class="pc-column-count" id="ready-column-count">0</span>
+            </h2>
+          </div>
+          <div class="pc-orders-container" id="ready-orders-container">
+            <!-- Pedidos prontos serão carregados aqui -->
+          </div>
+        </div>
+
+        <!-- Coluna de Pedidos Entregues -->
+        <div class="pc-order-column" data-status="delivered">
+          <div class="pc-column-header">
+            <h2 class="pc-column-title">
+              <i class="fas fa-truck"></i> Entregues
+              <span class="pc-column-count" id="delivered-column-count">0</span>
+            </h2>
+          </div>
+          <div class="pc-orders-container" id="delivered-orders-container">
+            <!-- Pedidos entregues serão carregados aqui -->
+          </div>
+        </div>
+
+        <!-- Coluna de Pedidos Arquivados -->
+        <div class="pc-order-column" data-status="archived">
+          <div class="pc-column-header">
+            <h2 class="pc-column-title">
+              <i class="fas fa-archive"></i> Arquivados
+              <span class="pc-column-count" id="archived-column-count">0</span>
+            </h2>
+          </div>
+          <div class="pc-orders-container" id="archived-orders-container">
+            <!-- Pedidos arquivados serão carregados aqui -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Detalhes do Pedido -->
+    <div id="order-details-modal" class="pc-modal">
+      <div class="pc-modal-content">
+        <div class="pc-modal-header">
+          <h2>Detalhes do Pedido</h2>
+          <button class="pc-close-button">&times;</button>
+        </div>
+        <div class="pc-modal-body">
+          <div class="pc-order-details-section">
+            <div>
+              <h3 class="pc-section-title">
+                <i class="fas fa-receipt"></i> Informações do Pedido
+              </h3>
+              <div class="pc-order-header-info">
+                <h3 id="order-id-display">Pedido #</h3>
+                <div class="pc-status-badge" id="order-status-badge"></div>
+              </div>
+            </div>
+            
+            <div class="pc-customer-info">
+              <h3 class="pc-section-title">
+                <i class="fas fa-user"></i> Informações do Cliente
+              </h3>
+              <div class="pc-info-item">
+                <span class="pc-info-label">Nome:</span>
+                <span class="pc-info-value" id="customer-name"></span>
+              </div>
+              <div class="pc-info-item">
+                <span class="pc-info-label">Telefone:</span>
+                <span class="pc-info-value" id="customer-phone"></span>
+              </div>
+              <div class="pc-info-item">
+                <span class="pc-info-label">Endereço:</span>
+                <span class="pc-info-value" id="customer-address"></span>
+              </div>
+              <div class="pc-info-item">
+                <span class="pc-info-label">Forma de Pagamento:</span>
+                <span class="pc-info-value" id="payment-method"></span>
+              </div>
+            </div>
+            
+            <div class="pc-order-items-section">
+              <h3 class="pc-section-title">
+                <i class="fas fa-list"></i> Itens do Pedido
+              </h3>
+              <div class="pc-items-list" id="order-items-list">
+                <!-- Itens do pedido serão carregados aqui -->
+              </div>
+            </div>
+          </div>
+          
+          <div class="pc-order-actions-section">
+            <div class="pc-order-total-section">
+              <h3 class="pc-section-title">
+                <i class="fas fa-money-bill-wave"></i> Total do Pedido
+              </h3>
+              <div class="pc-total-amount" id="order-total-amount"></div>
+            </div>
+            
+            <div class="pc-action-buttons">
+              <button id="print-order-btn" class="pc-action-btn pc-archive-btn">
+                <i class="fas fa-print"></i> Imprimir Pedido
+              </button>
+              <button id="archive-order-btn" class="pc-action-btn pc-archive-btn">
+                <i class="fas fa-archive"></i> Arquivar Pedido
+              </button>
+              <button id="delete-order-btn" class="pc-action-btn pc-delete-btn">
+                <i class="fas fa-trash"></i> Remover Pedido
+              </button>
+              
+              <div class="pc-status-nav">
+                <button id="prev-status-btn" class="pc-status-btn">
+                  <i class="fas fa-arrow-left"></i> Voltar
+                </button>
+                <button id="next-status-btn" class="pc-status-btn">
+                  Avançar <i class="fas fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="quadro-pc.js"></script>
+</body>
+</html>

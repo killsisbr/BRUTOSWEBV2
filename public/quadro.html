@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quadro de Pedidos - BrutusWeb</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="mobile-container">
+    <!-- Cabeçalho -->
+    <header class="app-header">
+      <h1>Quadro de Pedidos</h1>
+      <div class="header-actions">
+        <button id="refresh-btn" class="icon-button">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Filtros -->
+    <div class="order-filters">
+      <button class="filter-btn active" data-filter="all">Todos</button>
+      <button class="filter-btn" data-filter="pending">Pendentes</button>
+      <button class="filter-btn" data-filter="preparing">Em Preparação</button>
+      <button class="filter-btn" data-filter="ready">Prontos</button>
+      <button class="filter-btn" data-filter="delivered">Entregues</button>
+      <button class="filter-btn" data-filter="archived">Arquivados</button>
+    </div>
+
+    <!-- Quadro de Pedidos -->
+    <div class="orders-board">
+      <!-- Coluna de Pedidos Pendentes -->
+      <div class="order-column" data-status="pending">
+        <h2 class="column-title">
+          <i class="fas fa-clock"></i> Pendentes
+          <span class="order-count" id="pending-count">0</span>
+        </h2>
+        <div class="orders-container" id="pending-orders">
+          <!-- Pedidos pendentes serão carregados aqui -->
+        </div>
+      </div>
+
+      <!-- Coluna de Pedidos em Preparação -->
+      <div class="order-column" data-status="preparing">
+        <h2 class="column-title">
+          <i class="fas fa-utensils"></i> Em Preparação
+          <span class="order-count" id="preparing-count">0</span>
+        </h2>
+        <div class="orders-container" id="preparing-orders">
+          <!-- Pedidos em preparação serão carregados aqui -->
+        </div>
+      </div>
+
+      <!-- Coluna de Pedidos Prontos -->
+      <div class="order-column" data-status="ready">
+        <h2 class="column-title">
+          <i class="fas fa-check-circle"></i> Prontos
+          <span class="order-count" id="ready-count">0</span>
+        </h2>
+        <div class="orders-container" id="ready-orders">
+          <!-- Pedidos prontos serão carregados aqui -->
+        </div>
+      </div>
+
+      <!-- Coluna de Pedidos Entregues -->
+      <div class="order-column" data-status="delivered">
+        <h2 class="column-title">
+          <i class="fas fa-truck"></i> Entregues
+          <span class="order-count" id="delivered-count">0</span>
+        </h2>
+        <div class="orders-container" id="delivered-orders">
+          <!-- Pedidos entregues serão carregados aqui -->
+        </div>
+      </div>
+
+      <!-- Coluna de Pedidos Arquivados -->
+      <div class="order-column" data-status="archived">
+        <h2 class="column-title">
+          <i class="fas fa-archive"></i> Arquivados
+          <span class="order-count" id="archived-count">0</span>
+        </h2>
+        <div class="orders-container" id="archived-orders">
+          <!-- Pedidos arquivados serão carregados aqui -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Detalhes do Pedido -->
+    <div id="order-details-modal" class="modal">
+      <div class="modal-content order-details-modal">
+        <div class="modal-header">
+          <h2>Detalhes do Pedido</h2>
+          <button class="close-button">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="order-header">
+            <h3 id="order-id-display">Pedido #</h3>
+            <div class="order-status-badge" id="order-status-badge"></div>
+          </div>
+          
+          <div class="customer-info">
+            <h4><i class="fas fa-user"></i> Informações do Cliente</h4>
+            <p><strong>Nome:</strong> <span id="customer-name"></span></p>
+            <p><strong>Telefone:</strong> <span id="customer-phone"></span></p>
+            <p><strong>Endereço:</strong> <span id="customer-address"></span></p>
+            <p><strong>Forma de Pagamento:</strong> <span id="payment-method"></span></p>
+          </div>
+          
+          <div class="order-items">
+            <h4><i class="fas fa-list"></i> Itens do Pedido</h4>
+            <div id="order-items-list"></div>
+          </div>
+          
+          <div class="order-total">
+            <h4><i class="fas fa-money-bill-wave"></i> Total</h4>
+            <p id="order-total-amount"></p>
+          </div>
+          
+          <div class="order-actions">
+            <button id="archive-order-btn" class="archive-button">
+              <i class="fas fa-archive"></i> Arquivar Pedido
+            </button>
+            <button id="delete-order-btn" class="delete-button">
+              <i class="fas fa-trash"></i> Remover Pedido
+            </button>
+            <div class="status-actions">
+              <button id="prev-status-btn" class="status-button">
+                <i class="fas fa-arrow-left"></i> Voltar Status
+              </button>
+              <button id="next-status-btn" class="status-button">
+                Avançar Status <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="quadro.js"></script>
+</body>
+</html>

@@ -1,0 +1,518 @@
+// Estado da aplicação
+let pedidos = [];
+let pedidoSelecionado = null;
+let autoRefreshInterval = null;
+let autoPrintEnabled = false;
+
+// Elementos do DOM
+const elements = {
+  refreshBtn: document.getElementById('refresh-btn'),
+  autoRefreshCheckbox: document.getElementById('auto-refresh-checkbox'),
+  orderDetailsModal: document.getElementById('order-details-modal'),
+  orderIdDisplay: document.getElementById('order-id-display'),
+  orderStatusBadge: document.getElementById('order-status-badge'),
+  customerName: document.getElementById('customer-name'),
+  customerPhone: document.getElementById('customer-phone'),
+  customerAddress: document.getElementById('customer-address'),
+  paymentMethod: document.getElementById('payment-method'),
+  orderItemsList: document.getElementById('order-items-list'),
+  orderTotalAmount: document.getElementById('order-total-amount'),
+  archiveOrderBtn: document.getElementById('archive-order-btn'),
+  deleteOrderBtn: document.getElementById('delete-order-btn'),
+  prevStatusBtn: document.getElementById('prev-status-btn'),
+  nextStatusBtn: document.getElementById('next-status-btn'),
+  closeButtons: document.querySelectorAll('.pc-close-button'),
+  filterButtons: document.querySelectorAll('.pc-filter-btn'),
+  // Contadores de filtros
+  allCount: document.getElementById('all-count'),
+  pendingCount: document.getElementById('pending-count'),
+  preparingCount: document.getElementById('preparing-count'),
+  readyCount: document.getElementById('ready-count'),
+  deliveredCount: document.getElementById('delivered-count'),
+  archivedCount: document.getElementById('archived-count'),
+  // Containers de pedidos
+  pendingOrdersContainer: document.getElementById('pending-orders-container'),
+  preparingOrdersContainer: document.getElementById('preparing-orders-container'),
+  readyOrdersContainer: document.getElementById('ready-orders-container'),
+  deliveredOrdersContainer: document.getElementById('delivered-orders-container'),
+  archivedOrdersContainer: document.getElementById('archived-orders-container'),
+  // Contadores de colunas
+  pendingColumnCount: document.getElementById('pending-column-count'),
+  preparingColumnCount: document.getElementById('preparing-column-count'),
+  readyColumnCount: document.getElementById('ready-column-count'),
+  deliveredColumnCount: document.getElementById('delivered-column-count'),
+  archivedColumnCount: document.getElementById('archived-column-count'),
+  // Elemento da coluna de preparação
+  preparingColumn: document.getElementById('preparing-column'),
+  // Resumo
+  totalOrders: document.getElementById('total-orders'),
+  totalValue: document.getElementById('total-value'),
+  pendingOrdersSummary: document.getElementById('pending-orders'),
+  preparingOrdersSummary: document.getElementById('preparing-orders'),
+  // Botão de teste de impressão
+  printTestBtn: document.getElementById('print-test-btn'),
+  // Botão de impressão de pedido
+  printOrderBtn: document.getElementById('print-order-btn')
+};
+
+// Mapeamento de status para texto e cor
+const statusConfig = {
+  pending: { text: 'Pendente', color: '#f39c12', icon: 'fa-clock' },
+  preparing: { text: 'Em Preparação', color: '#3498db', icon: 'fa-utensils' },
+  ready: { text: 'Pronto', color: '#27ae60', icon: 'fa-check-circle' },
+  delivered: { text: 'Entregue', color: '#9b59b6', icon: 'fa-truck' },
+  archived: { text: 'Arquivado', color: '#95a5a6', icon: 'fa-archive' }
+};
+
+// Ordem dos status
+const statusOrder = ['pending', 'preparing', 'ready', 'delivered', 'archived'];
+
+// Função para carregar pedidos
+async function carregarPedidos() {
+  try {
+    const res = await fetch('/api/pedidos');
+    const novosPedidos = await res.json();
+    
+    // Detectar novos pedidos
+    const pedidosAtuais = new Set(pedidos.map(p => p.id));
+    const novosPedidosIds = novosPedidos.filter(p => !pedidosAtuais.has(p.id)).map(p => p.id);
+    
+    pedidos = novosPedidos;
+    renderizarQuadro();
+    atualizarResumo();
+    
+    // Imprimir novos pedidos se a opção estiver habilitada
+    if (novosPedidosIds.length > 0) {
+      const autoPrint = localStorage.getItem('autoPrintEnabled') === 'true';
+      if (autoPrint) {
+        // Encontrar os pedidos novos
+        const pedidosNovos = pedidos.filter(p => novosPedidosIds.includes(p.id));
+        pedidosNovos.forEach(pedido => {
+          // Apenas imprimir pedidos pendentes (novos)
+          if (pedido.status === 'pending') {
+            setTimeout(() => {
+              imprimirPedido(pedido);
+            }, 1000); // Pequeno atraso para garantir que o pedido foi salvo
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao carregar pedidos:', error);
+  }
+}
+
+// Renderizar quadro de pedidos
+function renderizarQuadro() {
+  // Salvar IDs dos pedidos atuais para detectar novos pedidos
+  const pedidosAtuais = new Set(pedidos.map(p => p.id));
+  
+  // Limpar containers
+  elements.pendingOrdersContainer.innerHTML = '';
+  elements.preparingOrdersContainer.innerHTML = '';
+  elements.readyOrdersContainer.innerHTML = '';
+  elements.deliveredOrdersContainer.innerHTML = '';
+  elements.archivedOrdersContainer.innerHTML = '';
+  
+  // Contadores
+  const counts = {
+    pending: 0,
+    preparing: 0,
+    ready: 0,
+    delivered: 0,
+    archived: 0
+  };
+  
+  // Agrupar pedidos por status
+  pedidos.forEach(pedido => {
+    counts[pedido.status]++;
+    
+    const orderCard = criarCardPedido(pedido);
+    
+    switch (pedido.status) {
+      case 'pending':
+        elements.pendingOrdersContainer.appendChild(orderCard);
+        break;
+      case 'preparing':
+        elements.preparingOrdersContainer.appendChild(orderCard);
+        break;
+      case 'ready':
+        elements.readyOrdersContainer.appendChild(orderCard);
+        break;
+      case 'delivered':
+        elements.deliveredOrdersContainer.appendChild(orderCard);
+        break;
+      case 'archived':
+        elements.archivedOrdersContainer.appendChild(orderCard);
+        break;
+    }
+  });
+  
+  // Mostrar ou esconder a coluna de "em preparo" conforme necessário
+  if (counts.preparing > 0) {
+    elements.preparingColumn.style.display = 'flex';
+  } else {
+    elements.preparingColumn.style.display = 'none';
+  }
+  
+  // Atualizar contadores de colunas
+  elements.pendingColumnCount.textContent = counts.pending;
+  elements.preparingColumnCount.textContent = counts.preparing;
+  elements.readyColumnCount.textContent = counts.ready;
+  elements.deliveredColumnCount.textContent = counts.delivered;
+  elements.archivedColumnCount.textContent = counts.archived;
+  
+  // Atualizar contadores de filtros
+  elements.allCount.textContent = pedidos.length;
+  elements.pendingCount.textContent = counts.pending;
+  elements.preparingCount.textContent = counts.preparing;
+  elements.readyCount.textContent = counts.ready;
+  elements.deliveredCount.textContent = counts.delivered;
+  elements.archivedCount.textContent = counts.archived;
+}
+
+// Criar card de pedido
+function criarCardPedido(pedido) {
+  const card = document.createElement('div');
+  card.className = 'pc-order-card';
+  card.dataset.id = pedido.id;
+  
+  // Formatar data
+  const data = new Date(pedido.data);
+  const dataFormatada = data.toLocaleDateString('pt-BR');
+  const horaFormatada = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  
+  // Calcular total de itens
+  const totalItens = pedido.itens.reduce((total, item) => total + item.quantidade, 0);
+  
+  card.innerHTML = `
+    <div class="pc-order-header">
+      <div class="pc-order-id">Pedido #${pedido.id}</div>
+      <div class="pc-order-time">${horaFormatada}</div>
+    </div>
+    <div class="pc-order-details">
+      <div class="pc-customer-name">${pedido.cliente_nome}</div>
+      <div class="pc-order-items">${totalItens} item(s)</div>
+      <div class="pc-order-total">R$ ${pedido.total.toFixed(2).replace('.', ',')}</div>
+    </div>
+    <div class="pc-order-footer">
+      <span class="pc-order-status" style="background-color: ${statusConfig[pedido.status].color}">
+        <i class="fas ${statusConfig[pedido.status].icon}"></i>
+        ${statusConfig[pedido.status].text}
+      </span>
+    </div>
+  `;
+  
+  // Adicionar evento de clique
+  card.addEventListener('click', () => mostrarDetalhesPedido(pedido));
+  
+  return card;
+}
+
+// Mostrar detalhes do pedido
+function mostrarDetalhesPedido(pedido) {
+  pedidoSelecionado = pedido;
+  
+  // Atualizar informações do pedido
+  elements.orderIdDisplay.textContent = `Pedido #${pedido.id}`;
+  
+  // Atualizar badge de status
+  const statusInfo = statusConfig[pedido.status];
+  elements.orderStatusBadge.innerHTML = `
+    <i class="fas ${statusInfo.icon}"></i>
+    ${statusInfo.text}
+  `;
+  elements.orderStatusBadge.style.backgroundColor = statusInfo.color;
+  
+  // Atualizar informações do cliente
+  elements.customerName.textContent = pedido.cliente_nome || 'Não informado';
+  elements.customerPhone.textContent = pedido.cliente_telefone || 'Não informado';
+  elements.customerAddress.textContent = pedido.cliente_endereco || 'Não informado';
+  elements.paymentMethod.textContent = pedido.forma_pagamento || 'Não informado';
+  
+  // Atualizar itens do pedido
+  elements.orderItemsList.innerHTML = '';
+  pedido.itens.forEach(item => {
+    const itemElement = document.createElement('div');
+    itemElement.className = 'pc-item-row';
+    itemElement.innerHTML = `
+      <div class="pc-item-details">
+        <div class="pc-item-name">${item.produto_nome || item.produto.nome}</div>
+        <div class="pc-item-quantity">Quantidade: ${item.quantidade}</div>
+      </div>
+      <div class="pc-item-price">R$ ${(item.preco_unitario * item.quantidade).toFixed(2).replace('.', ',')}</div>
+    `;
+    elements.orderItemsList.appendChild(itemElement);
+  });
+  
+  // Atualizar total
+  elements.orderTotalAmount.textContent = `R$ ${pedido.total.toFixed(2).replace('.', ',')}`;
+  
+  // Atualizar botões de status
+  atualizarBotoesStatus(pedido.status);
+  
+  // Mostrar modal
+  mostrarModal(elements.orderDetailsModal);
+}
+
+// Atualizar botões de status
+function atualizarBotoesStatus(status) {
+  const currentIndex = statusOrder.indexOf(status);
+  
+  // Desabilitar botão de voltar se for o primeiro status
+  elements.prevStatusBtn.disabled = currentIndex === 0;
+  
+  // Desabilitar botão de avançar se for o último status
+  elements.nextStatusBtn.disabled = currentIndex === statusOrder.length - 1;
+  
+  // Esconder botão de arquivar se já estiver arquivado
+  elements.archiveOrderBtn.style.display = status === 'archived' ? 'none' : 'flex';
+}
+
+// Avançar status do pedido
+async function avancarStatus() {
+  if (!pedidoSelecionado) return;
+  
+  const currentIndex = statusOrder.indexOf(pedidoSelecionado.status);
+  if (currentIndex < statusOrder.length - 1) {
+    const novoStatus = statusOrder[currentIndex + 1];
+    await atualizarStatusPedido(pedidoSelecionado.id, novoStatus);
+  }
+}
+
+// Voltar status do pedido
+async function voltarStatus() {
+  if (!pedidoSelecionado) return;
+  
+  const currentIndex = statusOrder.indexOf(pedidoSelecionado.status);
+  if (currentIndex > 0) {
+    const novoStatus = statusOrder[currentIndex - 1];
+    await atualizarStatusPedido(pedidoSelecionado.id, novoStatus);
+  }
+}
+
+// Arquivar pedido
+async function arquivarPedido() {
+  if (!pedidoSelecionado) return;
+  
+  await atualizarStatusPedido(pedidoSelecionado.id, 'archived');
+}
+
+// Remover pedido
+async function removerPedido() {
+  if (!pedidoSelecionado) return;
+  
+  if (confirm(`Tem certeza que deseja remover o pedido #${pedidoSelecionado.id}? Esta ação não pode ser desfeita.`)) {
+    try {
+      const response = await fetch(`/api/pedidos/${pedidoSelecionado.id}`, {
+        method: 'DELETE'
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Fechar modal
+        fecharModal(elements.orderDetailsModal);
+        
+        // Recarregar pedidos
+        carregarPedidos();
+        
+        alert('Pedido removido com sucesso!');
+      } else {
+        alert('Erro ao remover pedido: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Erro ao remover pedido:', error);
+      alert('Erro ao remover pedido. Por favor, tente novamente.');
+    }
+  }
+}
+
+// Atualizar status do pedido
+async function atualizarStatusPedido(pedidoId, novoStatus) {
+  try {
+    const response = await fetch(`/api/pedidos/${pedidoId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status: novoStatus })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Fechar modal
+      fecharModal(elements.orderDetailsModal);
+      
+      // Recarregar pedidos
+      carregarPedidos();
+      
+      // Se estiver arquivando, mostrar mensagem
+      if (novoStatus === 'archived') {
+        alert('Pedido arquivado com sucesso!');
+      }
+    } else {
+      alert('Erro ao atualizar status do pedido: ' + result.error);
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar status do pedido:', error);
+    alert('Erro ao atualizar status do pedido. Por favor, tente novamente.');
+  }
+}
+
+// Atualizar resumo
+function atualizarResumo() {
+  // Total de pedidos
+  elements.totalOrders.textContent = pedidos.length;
+  
+  // Valor total
+  const valorTotal = pedidos.reduce((total, pedido) => total + pedido.total, 0);
+  elements.totalValue.textContent = `R$ ${valorTotal.toFixed(2).replace('.', ',')}`;
+  
+  // Contagem por status
+  const statusCounts = {
+    pending: 0,
+    preparing: 0
+  };
+  
+  pedidos.forEach(pedido => {
+    if (pedido.status === 'pending') statusCounts.pending++;
+    if (pedido.status === 'preparing') statusCounts.preparing++;
+  });
+  
+  elements.pendingOrdersSummary.textContent = statusCounts.pending;
+  elements.preparingOrdersSummary.textContent = statusCounts.preparing;
+}
+
+// Função para imprimir pedido
+function imprimirPedido(pedido) {
+  // Verificar se a impressão automática está habilitada
+  const autoPrint = localStorage.getItem('autoPrintEnabled') === 'true';
+  
+  // Se for uma impressão automática e a opção estiver desabilitada, não imprimir
+  if (!autoPrint) {
+    return;
+  }
+  
+  try {
+    // Criar conteúdo da impressão
+    let conteudoImpressao = `
+      ================================
+      PEDIDO #${pedido.id}
+      ================================
+      Data: ${new Date(pedido.data).toLocaleString('pt-BR')}
+      
+      CLIENTE:
+      Nome: ${pedido.cliente_nome || 'Não informado'}
+      Telefone: ${pedido.cliente_telefone || 'Não informado'}
+      Endereço: ${pedido.cliente_endereco || 'Não informado'}
+      Pagamento: ${pedido.forma_pagamento || 'Não informado'}
+      
+      ITENS:
+    `;
+    
+    // Adicionar itens do pedido
+    pedido.itens.forEach(item => {
+      const nomeProduto = item.produto_nome || item.produto.nome;
+      const precoTotal = (item.preco_unitario * item.quantidade).toFixed(2).replace('.', ',');
+      conteudoImpressao += `
+      - ${item.quantidade}x ${nomeProduto}
+        R$ ${precoTotal}`;
+    });
+    
+    // Adicionar total
+    conteudoImpressao += `
+      
+      TOTAL: R$ ${pedido.total.toFixed(2).replace('.', ',')}
+      ================================
+    `;
+    
+    // Se estiver em ambiente de desenvolvimento, mostrar no console
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Conteúdo da impressão:', conteudoImpressao);
+    }
+    
+    // Criar uma janela de impressão
+    const janelaImpressao = window.open('', '_blank');
+    janelaImpressao.document.write(`
+      <html>
+        <head>
+          <title>Impressão do Pedido #${pedido.id}</title>
+          <style>
+            body {
+              font-family: 'Courier New', monospace;
+              font-size: 12px;
+              white-space: pre;
+            }
+          </style>
+        </head>
+        <body>${conteudoImpressao}</body>
+      </html>
+    `);
+    janelaImpressao.document.close();
+    janelaImpressao.focus();
+    
+    // Aguardar um momento e imprimir
+    setTimeout(() => {
+      janelaImpressao.print();
+      janelaImpressao.close();
+    }, 500);
+    
+    console.log(`Pedido #${pedido.id} enviado para impressão`);
+  } catch (error) {
+    console.error('Erro ao imprimir pedido:', error);
+  }
+}
+
+// Função para teste de impressão
+function testarImpressao() {
+  // Criar um pedido de teste
+  const pedidoTeste = {
+    id: 999,
+    data: new Date().toISOString(),
+    cliente_nome: 'Cliente de Teste',
+    cliente_telefone: '(00) 00000-0000',
+    cliente_endereco: 'Rua de Teste, 123',
+    forma_pagamento: 'Dinheiro',
+    total: 45.50,
+    itens: [
+      {
+        produto_nome: 'Hambúrguer Especial',
+        preco_unitario: 25.00,
+        quantidade: 1
+      },
+      {
+        produto_nome: 'Batata Frita',
+        preco_unitario: 12.00,
+        quantidade: 2
+      },
+      {
+        produto_nome: 'Refrigerante',
+        preco_unitario: 8.50,
+        quantidade: 1
+      }
+    ]
+  };
+  
+  imprimirPedido(pedidoTeste);
+}
+
+// Função para imprimir o pedido selecionado
+function imprimirPedidoSelecionado() {
+  if (pedidoSelecionado) {
+    imprimirPedido(pedidoSelecionado);
+  }
+}
+
+// Mostrar modal
+function mostrarModal(modal) {
+  modal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+// Fechar modal
+function fecharModal(modal) {
+  modal.classList.remove('show');
+  document.body.style.overflow = 'auto';
+}
