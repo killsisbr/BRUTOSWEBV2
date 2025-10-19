@@ -18,6 +18,15 @@ let whatsappId = null;
 let clienteInfo = null;
 let entregaInfo = null; // Informações de entrega
 
+// Variáveis para o sistema de swipe
+let touchStartX = 0;
+let touchEndX = 0;
+let touchStartY = 0;
+let touchEndY = 0;
+// Variáveis para o gesto de swipe para cima (abrir carrinho)
+let touchStartYCart = 0;
+let touchEndYCart = 0;
+
 // Elementos do DOM
 const elements = {
   currentProduct: document.getElementById('current-product'),
@@ -720,6 +729,12 @@ async function salvarClienteInfo() {
 // Event Listeners
 elements.cartIcon.addEventListener('click', () => {
   mostrarModal(elements.cartModal);
+  
+  // Esconder o indicador de swipe após o primeiro uso
+  const swipeIndicator = document.querySelector('.swipe-up-indicator');
+  if (swipeIndicator) {
+    swipeIndicator.style.display = 'none';
+  }
 });
 
 elements.checkoutBtn.addEventListener('click', () => {
@@ -959,7 +974,201 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
   });
+  
+  // Adicionar eventos de toque para o carrossel (swipe)
+  adicionarEventosSwipe();
 });
+
+// Adicionar eventos de toque para o carrossel (swipe)
+function adicionarEventosSwipe() {
+  const carouselElement = elements.currentProduct;
+  const bodyElement = document.body;
+  
+  // Eventos para touch (dispositivos móveis)
+  carouselElement.addEventListener('touchstart', handleTouchStart, false);
+  carouselElement.addEventListener('touchmove', handleTouchMove, false);
+  carouselElement.addEventListener('touchend', handleTouchEnd, false);
+  
+  // Eventos para mouse (desktop)
+  carouselElement.addEventListener('mousedown', handleMouseDown, false);
+  carouselElement.addEventListener('mousemove', handleMouseMove, false);
+  carouselElement.addEventListener('mouseup', handleMouseUp, false);
+  carouselElement.addEventListener('mouseleave', handleMouseLeave, false);
+  
+  // Eventos para swipe para cima (abrir carrinho)
+  bodyElement.addEventListener('touchstart', handleTouchStartCart, false);
+  bodyElement.addEventListener('touchmove', handleTouchMoveCart, false);
+  bodyElement.addEventListener('touchend', handleTouchEndCart, false);
+  
+  // Prevenir seleção de texto durante o swipe
+  carouselElement.addEventListener('selectstart', (e) => e.preventDefault(), false);
+}
+
+// Funções para touch
+function handleTouchStart(e) {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}
+
+function handleTouchMove(e) {
+  if (!touchStartX) return;
+  
+  touchEndX = e.touches[0].clientX;
+  touchEndY = e.touches[0].clientY;
+  
+  // Adicionar efeito visual durante o movimento
+  if (touchStartX && touchEndX && elements.currentProduct) {
+    const diffX = touchStartX - touchEndX;
+    const productCard = elements.currentProduct.querySelector('.product-card');
+    if (productCard) {
+      productCard.style.transform = `translateX(${-diffX * 0.05}%)`;
+    }
+  }
+}
+
+function handleTouchEnd() {
+  handleSwipeGesture();
+  // Resetar transformação
+  if (elements.currentProduct) {
+    const productCard = elements.currentProduct.querySelector('.product-card');
+    if (productCard) {
+      productCard.style.transform = '';
+    }
+  }
+  // Resetar valores
+  touchStartX = 0;
+  touchEndX = 0;
+  touchStartY = 0;
+  touchEndY = 0;
+}
+
+// Funções para mouse
+function handleMouseDown(e) {
+  touchStartX = e.clientX;
+  touchStartY = e.clientY;
+  if (elements.currentProduct) {
+    elements.currentProduct.style.cursor = 'grabbing';
+    const productCard = elements.currentProduct.querySelector('.product-card');
+    if (productCard) {
+      productCard.style.cursor = 'grabbing';
+    }
+  }
+}
+
+function handleMouseMove(e) {
+  if (!touchStartX) return;
+  
+  touchEndX = e.clientX;
+  touchEndY = e.clientY;
+  
+  // Adicionar efeito visual durante o movimento
+  if (touchStartX && touchEndX && elements.currentProduct) {
+    const diffX = touchStartX - touchEndX;
+    const productCard = elements.currentProduct.querySelector('.product-card');
+    if (productCard) {
+      productCard.style.transform = `translateX(${-diffX * 0.05}%)`;
+    }
+  }
+}
+
+function handleMouseUp() {
+  handleSwipeGesture();
+  if (elements.currentProduct) {
+    elements.currentProduct.style.cursor = 'grab';
+    const productCard = elements.currentProduct.querySelector('.product-card');
+    if (productCard) {
+      productCard.style.cursor = 'grab';
+      productCard.style.transform = '';
+    }
+  }
+  // Resetar valores
+  touchStartX = 0;
+  touchEndX = 0;
+  touchStartY = 0;
+  touchEndY = 0;
+}
+
+function handleMouseLeave() {
+  // Resetar valores se o mouse sair da área
+  touchStartX = 0;
+  touchEndX = 0;
+  touchStartY = 0;
+  touchEndY = 0;
+  if (elements.currentProduct) {
+    elements.currentProduct.style.cursor = 'default';
+    const productCard = elements.currentProduct.querySelector('.product-card');
+    if (productCard) {
+      productCard.style.cursor = 'default';
+      productCard.style.transform = '';
+    }
+  }
+}
+
+// Função para processar o gesto de swipe
+function handleSwipeGesture() {
+  if (!touchStartX || !touchEndX) return;
+  
+  const diffX = touchStartX - touchEndX;
+  const diffY = touchStartY - touchEndY;
+  const minSwipeDistance = 50; // Distância mínima para considerar um swipe
+  
+  // Verificar se o movimento foi principalmente horizontal
+  if (Math.abs(diffX) > Math.abs(diffY)) {
+    // Swipe horizontal
+    if (Math.abs(diffX) > minSwipeDistance) {
+      if (diffX > 0) {
+        // Swipe para a esquerda - próximo produto
+        proximoProduto();
+      } else {
+        // Swipe para a direita - produto anterior
+        produtoAnterior();
+      }
+    }
+  }
+}
+
+// Funções para touch do carrinho (swipe para cima)
+function handleTouchStartCart(e) {
+  // Verificar se o toque começou na parte inferior da tela
+  const touch = e.touches[0];
+  if (touch.clientY > window.innerHeight * 0.7) {
+    touchStartYCart = touch.clientY;
+  }
+}
+
+function handleTouchMoveCart(e) {
+  if (!touchStartYCart) return;
+  
+  const touch = e.touches[0];
+  touchEndYCart = touch.clientY;
+}
+
+function handleTouchEndCart() {
+  handleSwipeUpGesture();
+  // Resetar valores
+  touchStartYCart = 0;
+  touchEndYCart = 0;
+}
+
+// Função para processar o gesto de swipe para cima
+function handleSwipeUpGesture() {
+  if (!touchStartYCart || !touchEndYCart) return;
+  
+  const diffY = touchStartYCart - touchEndYCart;
+  const minSwipeDistance = 80; // Distância mínima para considerar um swipe para cima
+  
+  // Verificar se o movimento foi para cima e com distância suficiente
+  if (diffY > minSwipeDistance) {
+    // Swipe para cima - abrir carrinho
+    mostrarModal(elements.cartModal);
+    
+    // Esconder o indicador de swipe após o primeiro uso
+    const swipeIndicator = document.querySelector('.swipe-up-indicator');
+    if (swipeIndicator) {
+      swipeIndicator.style.display = 'none';
+    }
+  }
+}
 
 // Função para usar a localização do usuário
 function usarLocalizacao() {

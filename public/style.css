@@ -204,6 +204,14 @@ body {
   padding: 10px;
   width: 100%;
   height: 100%;
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.2s ease;
+}
+
+.current-product:active {
+  cursor: grabbing;
+  transform: scale(0.98);
 }
 
 .product-card {
@@ -223,6 +231,12 @@ body {
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  cursor: grab;
+}
+
+.product-card:active {
+  cursor: grabbing;
+  transform: scale(0.98);
 }
 
 .product-image-container {
@@ -1165,6 +1179,51 @@ body {
   font-size: 1.2rem;
 }
 
+/* Indicador de swipe para cima */
+.swipe-up-indicator {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 90;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+  animation: bounce 2s infinite;
+}
+
+.swipe-up-indicator:hover {
+  opacity: 1;
+}
+
+.swipe-up-bar {
+  width: 40px;
+  height: 4px;
+  background-color: var(--primary-color);
+  border-radius: 2px;
+  margin-bottom: 8px;
+}
+
+.swipe-up-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  40% {
+    transform: translateX(-50%) translateY(-10px);
+  }
+  60% {
+    transform: translateX(-50%) translateY(-5px);
+  }
+}
+
 /* Informações do WhatsApp */
 .whatsapp-info {
   background: #25D366;
@@ -1620,6 +1679,15 @@ body {
     flex: 1;
     margin: 0 5px;
   }
+  
+  /* Ajuste para o indicador de swipe em mobile */
+  .swipe-up-indicator {
+    bottom: 5px;
+  }
+  
+  .swipe-up-text {
+    font-size: 0.7rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1634,6 +1702,11 @@ body {
   
   .admin-product-image {
     height: 150px;
+  }
+  
+  /* Esconder o indicador de swipe em telas muito pequenas */
+  .swipe-up-indicator {
+    display: none;
   }
 }
 
