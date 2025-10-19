@@ -147,10 +147,12 @@ function renderizarProdutoAtual() {
   
   elements.currentProduct.innerHTML = `
     <div class="product-card">
-      <img src="${produto.imagem || getPlaceholderSVG(300, 200, 'Imagem')}" 
-           alt="${produto.nome}" 
-           class="product-image" 
-           onerror="this.src='${getPlaceholderSVG(300, 200, 'Erro')}'; this.onerror=null;">
+      <div class="product-image-container">
+        <img src="${produto.imagem || getPlaceholderSVG(300, 200, 'Imagem')}" 
+             alt="${produto.nome}" 
+             class="product-image" 
+             onerror="this.src='${getPlaceholderSVG(300, 200, 'Erro')}'; this.onerror=null;">
+      </div>
       <div class="product-info">
         <h3 class="product-name">${produto.nome}</h3>
         <p class="product-description">${produto.descricao || 'Delicioso lanche preparado com ingredientes frescos'}</p>
@@ -631,13 +633,13 @@ function mostrarNotificacao(mensagem) {
 // Mostrar modal
 function mostrarModal(modal) {
   modal.classList.add('show');
-  document.body.style.overflow = 'hidden';
+  // Removido o bloqueio de scroll para permitir rolagem na página
 }
 
 // Fechar modal
 function fecharModal(modal) {
   modal.classList.remove('show');
-  document.body.style.overflow = 'auto';
+  // Removido o controle de scroll para permitir rolagem na página
 }
 
 // Função para gerar SVG placeholder inline
@@ -957,9 +959,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
   });
-  
-  // Prevenir scroll na página
-  document.body.style.overflow = 'hidden';
 });
 
 // Função para usar a localização do usuário

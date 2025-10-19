@@ -115,17 +115,17 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   height: 100vh;
-  overflow: hidden;
+  overflow: auto;
 }
 
-/* Container principal mobile - versão fixa sem scroll */
+/* Container principal mobile - versão com scroll */
 .mobile-container {
   max-width: 100%;
   height: 100vh;
   margin: 0 auto;
   background: var(--bg-dark);
   position: relative;
-  overflow: hidden;
+  overflow: auto;
   display: flex;
   flex-direction: column;
 }
@@ -175,14 +175,14 @@ body {
   background: #3d3d3d;
 }
 
-/* Carrossel de Produtos - altura fixa */
+/* Carrossel de Produtos - altura flexível */
 .product-carousel {
   padding: 20px 0;
   background: var(--bg-dark);
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .carousel-container {
@@ -193,7 +193,7 @@ body {
   padding: 0 16px;
   margin-bottom: 16px;
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .current-product {
@@ -227,7 +227,7 @@ body {
 
 .product-image-container {
   width: 100%;
-  height: 75%;
+  height: 65%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -237,7 +237,7 @@ body {
 .product-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   background: transparent;
 }
 
@@ -251,6 +251,7 @@ body {
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
 }
 
 .product-name {
@@ -276,7 +277,7 @@ body {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--primary-color);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .add-to-cart {
@@ -284,12 +285,13 @@ body {
   color: white;
   border: none;
   border-radius: var(--border-radius);
-  padding: 12px 20px;
+  padding: 10px 16px;
   font-size: 1.0rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.3s;
   width: 100%;
+  flex-shrink: 0;
 }
 
 .add-to-cart:hover {
