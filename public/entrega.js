@@ -14,12 +14,22 @@ if (window.location.pathname.includes('pedido')) {
   // Adicionar evento ao botão de usar localização quando o DOM estiver pronto
   document.addEventListener('DOMContentLoaded', () => {
     if (deliveryElements.useLocationBtn) {
-      deliveryElements.useLocationBtn.addEventListener('click', getLocation);
+      deliveryElements.useLocationBtn.addEventListener('click', showMapWithUserLocation);
     }
   });
 }
 
-// Obter localização do usuário
+// Mostrar mapa com a localização do usuário
+function showMapWithUserLocation() {
+  if (window.Mapa) {
+    window.Mapa.showMapWithUserLocation();
+  } else {
+    // Fallback para o método antigo se o mapa não estiver disponível
+    getLocation();
+  }
+}
+
+// Obter localização do usuário (método antigo como fallback)
 function getLocation() {
   if (navigator.geolocation) {
     // Mostrar mensagem de carregamento
@@ -67,6 +77,11 @@ async function calculateDelivery(latitude, longitude) {
       } else {
         // Entrega válida
         showDeliveryInfo(data.distance, data.price);
+        
+        // Preencher o campo de endereço com o endereço convertido, se disponível
+        if (data.endereco && deliveryElements.clientAddress) {
+          deliveryElements.clientAddress.value = data.endereco;
+        }
         
         // Salvar coordenadas no elemento hidden para envio com o pedido
         const coordsInput = document.getElementById('client-coordinates');

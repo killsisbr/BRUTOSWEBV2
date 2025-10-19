@@ -124,6 +124,14 @@ async function carregarProdutos() {
   }
 }
 
+// Função para gerar SVG placeholder inline
+function getPlaceholderSVG(width, height, text = '') {
+  // Codificar o texto para uso em SVG
+  const encodedText = encodeURIComponent(text);
+  
+  return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}' viewBox='0 0 ${width} ${height}'%3E%3Crect width='100%25' height='100%25' fill='%23ddd'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial, sans-serif' font-size='${Math.min(width, height) / 8}' fill='%23666'%3E${encodedText}%3C/text%3E%3C/svg%3E`;
+}
+
 // Renderizar produtos
 function renderizarProdutos() {
   console.log('Renderizando produtos...');
@@ -140,10 +148,10 @@ function renderizarProdutos() {
     const productCard = document.createElement('div');
     productCard.className = 'admin-product-card';
     productCard.innerHTML = `
-      <img src="${produto.imagem || 'https://via.placeholder.com/80x80'}" 
+      <img src="${produto.imagem || getPlaceholderSVG(80, 80, 'Imagem')}" 
            alt="${produto.nome}" 
            class="admin-product-image" 
-           onerror="this.src='https://via.placeholder.com/80x80'">
+           onerror="this.src='${getPlaceholderSVG(80, 80, 'Erro')}'; this.onerror=null;">
       <div class="admin-product-info">
         <h3>${produto.nome}</h3>
         <p class="admin-product-category">${produto.categoria}</p>
@@ -249,7 +257,7 @@ function mostrarModalEdicao(produto) {
   resetarImagem();
   
   // Atualizar imagem e informações do produto
-  elements.editProductImage.src = produto.imagem || 'https://via.placeholder.com/80x80';
+  elements.editProductImage.src = produto.imagem || getPlaceholderSVG(80, 80, 'Imagem');
   elements.editProductImage.alt = produto.nome;
   elements.editProductNameDisplay.textContent = produto.nome;
   elements.editProductPriceDisplay.textContent = `R$ ${produto.preco.toFixed(2).replace('.', ',')}`;

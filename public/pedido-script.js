@@ -56,14 +56,14 @@ const elements = {
   categoryPorcoesBtn: document.getElementById('category-porcoes'),
   // Elementos do formulário do cliente
   clientName: document.getElementById('client-name'),
-  clientPhone: document.getElementById('client-phone'),
+  // REMOVIDO: clientPhone: document.getElementById('client-phone'),
   clientAddress: document.getElementById('client-address'),
   paymentMethod: document.getElementById('payment-method'),
   valorPago: document.getElementById('valor-pago'), // Novo elemento para valor pago
   dinheiroSection: document.getElementById('dinheiro-section'), // Seção para dinheiro
   usePreviousAddress: document.getElementById('use-previous-address'),
   previousAddress: document.getElementById('previous-address'),
-  previousAddressText: document.getElementById('previous-address-text'),
+  previousAddressText: document.getElementById('previousAddressText'),
   // Elementos de entrega
   useLocationBtn: document.getElementById('use-location-btn'),
   deliveryInfo: document.getElementById('delivery-info'),
@@ -147,10 +147,10 @@ function renderizarProdutoAtual() {
   
   elements.currentProduct.innerHTML = `
     <div class="product-card">
-      <img src="${produto.imagem || 'https://via.placeholder.com/300x200'}" 
+      <img src="${produto.imagem || getPlaceholderSVG(300, 200, 'Imagem')}" 
            alt="${produto.nome}" 
            class="product-image" 
-           onerror="this.src='https://via.placeholder.com/300x200'">
+           onerror="this.src='${getPlaceholderSVG(300, 200, 'Erro')}'; this.onerror=null;">
       <div class="product-info">
         <h3 class="product-name">${produto.nome}</h3>
         <p class="product-description">${produto.descricao || 'Delicioso lanche preparado com ingredientes frescos'}</p>
@@ -168,7 +168,7 @@ function renderizarProdutoAtual() {
 
 // Mostrar modal de seleção de quantidade
 function mostrarModalQuantidade(produto) {
-  elements.quantityProductImage.src = produto.imagem || 'https://via.placeholder.com/80x80';
+  elements.quantityProductImage.src = produto.imagem || getPlaceholderSVG(80, 80, 'Imagem');
   elements.quantityProductImage.alt = produto.nome;
   elements.quantityProductName.textContent = produto.nome;
   elements.quantityProductPrice.textContent = `R$ ${produto.preco.toFixed(2).replace('.', ',')}`;
@@ -640,6 +640,14 @@ function fecharModal(modal) {
   document.body.style.overflow = 'auto';
 }
 
+// Função para gerar SVG placeholder inline
+function getPlaceholderSVG(width, height, text = '') {
+  // Codificar o texto para uso em SVG
+  const encodedText = encodeURIComponent(text);
+  
+  return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}' viewBox='0 0 ${width} ${height}'%3E%3Crect width='100%25' height='100%25' fill='%23ddd'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial, sans-serif' font-size='${Math.min(width, height) / 8}' fill='%23666'%3E${encodedText}%3C/text%3E%3C/svg%3E`;
+}
+
 // Carregar informações do cliente via WhatsApp ID
 async function carregarClienteInfo() {
   if (!whatsappId) return;
@@ -653,7 +661,7 @@ async function carregarClienteInfo() {
       
       // Preencher campos do formulário com dados salvos
       elements.clientName.value = clienteInfo.nome || '';
-      elements.clientPhone.value = clienteInfo.telefone || '';
+      // REMOVIDO: elements.clientPhone.value = clienteInfo.telefone || '';
       elements.clientAddress.value = clienteInfo.endereco || '';
       
       // Preencher automaticamente as informações salvas
@@ -684,7 +692,7 @@ async function salvarClienteInfo() {
   const clienteData = {
     whatsappId: whatsappId,
     nome: elements.clientName.value,
-    telefone: elements.clientPhone.value,
+    // REMOVIDO: telefone: elements.clientPhone.value,
     endereco: elements.clientAddress.value
   };
   
@@ -719,6 +727,13 @@ elements.checkoutBtn.addEventListener('click', () => {
   }
   fecharModal(elements.cartModal);
   mostrarModal(elements.checkoutModal);
+  // Inicializar a seção de dinheiro com base no método de pagamento padrão
+  if (elements.paymentMethod.value === 'dinheiro') {
+    elements.dinheiroSection.style.display = 'block';
+  } else {
+    elements.dinheiroSection.style.display = 'none';
+    elements.valorPago.value = '';
+  }
 });
 
 // Adicionar evento para mudança de método de pagamento
@@ -750,17 +765,18 @@ elements.confirmOrderBtn.addEventListener('click', async () => {
     elements.clientAddress.value = clienteInfo.endereco;
   }
   
-  // Validar valor pago se for dinheiro
-  if (elements.paymentMethod.value === 'dinheiro') {
+  // Validar valor pago se for dinheiro e a seção estiver visível
+  if (elements.paymentMethod.value === 'dinheiro' && elements.dinheiroSection.style.display === 'block') {
     const valorPago = parseFloat(elements.valorPago.value);
     const totalPedido = calcularTotalPedido();
     
-    if (isNaN(valorPago) || valorPago <= 0) {
+    // Verificar se o valor é 0 ou 0,00 (cliente quer troco)
+    if (isNaN(valorPago) || valorPago < 0) {
       mostrarNotificacao('Por favor, informe o valor pago em dinheiro!');
       return;
     }
     
-    if (valorPago < totalPedido) {
+    if (valorPago > 0 && valorPago < totalPedido) {
       mostrarNotificacao('O valor pago deve ser maior ou igual ao total do pedido!');
       return;
     }
@@ -769,7 +785,7 @@ elements.confirmOrderBtn.addEventListener('click', async () => {
   // Preparar dados do cliente para salvar no banco
   const clienteData = {
     nome: elements.clientName.value,
-    telefone: elements.clientPhone.value,
+    // REMOVIDO: telefone: elements.clientPhone.value,
     endereco: elements.clientAddress.value,
     whatsappId: whatsappId,
     pagamento: elements.paymentMethod.value,
@@ -778,11 +794,6 @@ elements.confirmOrderBtn.addEventListener('click', async () => {
   
   // Salvar/atualizar informações do cliente no banco
   await salvarClienteInfo();
-  
-  // Se não preencheu telefone, usar o ID do WhatsApp como referência
-  if (!elements.clientPhone.value && whatsappId) {
-    elements.clientPhone.value = `WhatsApp: ${whatsappId.substring(0, 15)}...`;
-  }
   
   // Preparar dados do pedido
   const pedidoData = {
@@ -905,9 +916,24 @@ document.querySelectorAll('.modal').forEach(modal => {
 
 // Inicializar a aplicação
 document.addEventListener('DOMContentLoaded', async () => {
-  // Obter WhatsApp ID da URL
-  const urlParams = new URLSearchParams(window.location.search);
-  whatsappId = urlParams.get('whatsapp');
+  // Obter WhatsApp ID da sessionStorage ou da URL
+  whatsappId = sessionStorage.getItem('whatsappId');
+  
+  // Se não estiver na sessionStorage, tentar obter da URL
+  if (!whatsappId) {
+    const urlParams = new URLSearchParams(window.location.search);
+    whatsappId = urlParams.get('whatsapp');
+    
+    // Se encontrou na URL, armazenar na sessionStorage e remover da URL
+    if (whatsappId) {
+      sessionStorage.setItem('whatsappId', whatsappId);
+      
+      // Remover o parâmetro da URL sem recarregar a página
+      const url = new URL(window.location);
+      url.searchParams.delete('whatsapp');
+      window.history.replaceState({}, document.title, url);
+    }
+  }
   
   await carregarProdutos();
   

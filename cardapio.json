@@ -139,6 +139,26 @@
         {
           "nome": "Molho de cheddar",
           "preco": 7.00
+        },
+        {
+          "nome": "Hambúrguer 160g",
+          "preco": 10.00
+        },
+        {
+          "nome": "Hambúrguer 100g",
+          "preco": 6.00
+        },
+        {
+          "nome": "Salada",
+          "preco": 2.00
+        },
+        {
+          "nome": "Catupiry empanado",
+          "preco": 13.00
+        },
+        {
+          "nome": "Doritos",
+          "preco": 5.00
         }
       ]
     },

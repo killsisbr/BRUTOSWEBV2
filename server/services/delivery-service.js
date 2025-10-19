@@ -141,6 +141,32 @@ class DeliveryService {
     }
   }
 
+  // Converter coordenadas em endereço usando OpenRouteService
+  async converterCoordenadasEmEndereco(lat, lng) {
+    try {
+      const url = `https://api.openrouteservice.org/geocode/reverse`;
+      const response = await axios.get(url, {
+        params: {
+          api_key: this.orsApiKey,
+          'point.lon': lng,
+          'point.lat': lat,
+          size: 1
+        }
+      });
+
+      if (response.data && response.data.features && response.data.features.length > 0) {
+        const feature = response.data.features[0];
+        const endereco = feature.properties.label || '';
+        return endereco;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Erro ao converter coordenadas em endereço:', error.message);
+      return null;
+    }
+  }
+
   // Processar coordenadas do cliente e calcular entrega
   async processDelivery(clientCoordinates) {
     try {
@@ -163,12 +189,16 @@ class DeliveryService {
       // Calcular valor da entrega
       const deliveryInfo = this.calculateDeliveryPrice(distance);
       
+      // Converter coordenadas em endereço
+      const endereco = await this.converterCoordenadasEmEndereco(clientCoordinates.lat, clientCoordinates.lng);
+      
       return {
         success: true,
         distance: deliveryInfo.distance,
         price: deliveryInfo.price,
         error: deliveryInfo.error,
-        coordinates: clientCoordinates
+        coordinates: clientCoordinates,
+        endereco: endereco // Adicionando o endereço convertido
       };
     } catch (error) {
       console.error('Erro ao processar entrega:', error);

@@ -212,9 +212,19 @@ ${statusMessages[status] || 'Seu pedido foi atualizado!'}`;
       
       // Verificar se há informações de troco
       let changeInfo = '';
-      if (orderData.cliente.troco && orderData.cliente.troco > total) {
-        const change = orderData.cliente.troco - total;
-        changeInfo = `💵 *Troco*: R$ ${change.toFixed(2).replace('.', ',')} (para R$ ${orderData.cliente.troco.toFixed(2).replace('.', ',')})\n`;
+      if (orderData.cliente.troco !== null && orderData.cliente.troco !== undefined) {
+        const valorPago = parseFloat(orderData.cliente.troco);
+        const total = orderData.total;
+        
+        // Se o valor pago for 0, significa que o cliente quer troco sem especificar valor
+        if (valorPago === 0) {
+          changeInfo = `💵 *Troco*: Cliente deseja troco (valor não especificado)\n`;
+        } else if (valorPago > total) {
+          const change = valorPago - total;
+          changeInfo = `💵 *Troco*: R$ ${change.toFixed(2).replace('.', ',')} (para R$ ${valorPago.toFixed(2).replace('.', ',')})\n`;
+        } else if (valorPago === total) {
+          changeInfo = `💵 *Troco*: Sem troco (valor exato)\n`;
+        }
       }
       
       // Criar link para o WhatsApp do cliente

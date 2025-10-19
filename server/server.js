@@ -93,6 +93,12 @@ app.get('/api/produtos', async (req, res) => {
   }
 });
 
+// Endpoint para obter a chave da API do Google Maps
+app.get('/api/config/google-maps-key', (req, res) => {
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY || 'SuaChaveDaApiAqui';
+  res.json({ apiKey });
+});
+
 // Endpoint para calcular valor da entrega
 app.post('/api/entrega/calcular', async (req, res) => {
   try {
