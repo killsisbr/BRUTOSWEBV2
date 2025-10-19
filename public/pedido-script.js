@@ -957,6 +957,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
   });
+  
+  // Prevenir scroll na página
+  document.body.style.overflow = 'hidden';
 });
 
 // Função para usar a localização do usuário

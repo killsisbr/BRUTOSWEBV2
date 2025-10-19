@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title><%= customSettings.restaurantName %> - Pedidos</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: <%= customSettings.primaryColor %>;
+      --primary-dark: <%= darkenColor(customSettings.primaryColor, 20) %>;
+      --secondary-color: <%= customSettings.secondaryColor %>;
+      --bg-dark: <%= customSettings.backgroundColor %>;
+    }
+  </style>
+</head>
+<body>
+  <div class="mobile-container">
+    <!-- Cabeçalho -->
+    <header class="app-header">
+      <h1><%= customSettings.restaurantName %></h1>
+      <div class="header-actions">
+        <button id="cart-icon" class="icon-button">
+          <i class="fas fa-shopping-cart"></i>
+          <span id="cart-count" class="cart-badge">0</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Seletor de Categorias -->
+    <div class="category-selector">
+      <button id="category-lanches" class="category-btn active" data-category="lanches">Lanches</button>
+      <button id="category-bebidas" class="category-btn" data-category="bebidas">Bebidas</button>
+      <button id="category-porcoes" class="category-btn" data-category="porcoes">Porções</button>
+    </div>
+
+    <!-- Carrossel de Produtos -->
+    <section class="product-carousel">
+      <div class="carousel-container">
+        <button id="prev-product" class="carousel-btn prev">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <div id="current-product" class="current-product">
+          <!-- Produto atual será inserido via JS -->
+        </div>
+        <button id="next-product" class="carousel-btn next">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+      <div class="carousel-indicators">
+        <div id="carousel-dots" class="dots-container">
+          <!-- Indicadores serão inseridos via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal de Quantidade -->
+    <div id="quantity-modal" class="modal">
+      <div class="modal-content quantity-modal">
+        <div class="modal-header">
+          <h2>Selecionar Quantidade</h2>
+          <button class="close-button">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="product-preview">
+            <img id="quantity-product-image" src="" alt="" class="preview-image">
+            <div class="product-details">
+              <h3 id="quantity-product-name"></h3>
+              <div class="product-price" id="quantity-product-price"></div>
+            </div>
+          </div>
+          <div class="quantity-selector">
+            <div class="quantity-control">
+              <button id="decrease-quantity" class="quantity-btn">-</button>
+              <span id="selected-quantity" class="quantity-display">1</span>
+              <button id="increase-quantity" class="quantity-btn">+</button>
+            </div>
+          </div>
+          <!-- Seção de Adicionais -->
+          <div id="additionals-section" class="additionals-section">
+            <h3>Adicionais</h3>
+            <div id="additionals-list" class="additionals-list">
+              <!-- Adicionais serão carregados aqui -->
+            </div>
+            
+            <!-- Seção de Lanches no Carrinho -->
+            <div id="cart-items-section" class="cart-items-section" style="display: none; margin-top: 20px;">
+              <h4>Lanches no Carrinho:</h4>
+              <div id="cart-items-list" class="cart-items-list">
+                <!-- Lanches do carrinho serão carregados aqui -->
+              </div>
+            </div>
+          </div>
+          <div class="observation-section">
+            <label for="observation-input">Observações:</label>
+            <textarea id="observation-input" placeholder="Ex: Sem cebola, ponto da carne, etc."></textarea>
+          </div>
+          <button id="add-to-cart-confirm" class="add-to-cart">Adicionar ao Carrinho</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Carrinho -->
+    <div id="cart-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Carrinho (<span id="cart-count-modal">0</span>)</h2>
+          <button class="close-button">&times;</button>
+        </div>
+        <div class="modal-body">
+          <ul id="cart-items" class="cart-items">
+            <!-- Itens do carrinho serão inseridos via JS -->
+          </ul>
+          <div class="cart-summary">
+            <div class="total">
+              <span>Total:</span>
+              <span id="cart-total">R$ 0,00</span>
+            </div>
+            <button id="checkout-btn" class="checkout-button">Finalizar Pedido</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Finalização -->
+    <div id="checkout-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Finalizar Pedido</h2>
+          <button class="close-button">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="order-summary">
+            <h3>Resumo do Pedido</h3>
+            <ul id="order-items-summary">
+              <!-- Itens do pedido serão inseridos via JS -->
+            </ul>
+            <div class="total">
+              <span>Total:</span>
+              <span id="order-total">R$ 0,00</span>
+            </div>
+            <button id="confirm-order" class="confirm-button">Confirmar Pedido</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Confirmação -->
+    <div id="confirmation-modal" class="modal">
+      <div class="modal-content confirmation">
+        <div class="modal-body">
+          <i class="fas fa-check-circle confirmation-icon"></i>
+          <h2>Pedido Confirmado!</h2>
+          <p>Obrigado pelo seu pedido.</p>
+          <button id="new-order-btn" class="new-order-button">Novo Pedido</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

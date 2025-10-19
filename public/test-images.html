@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste de Imagens</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .image-test {
+      margin: 20px 0;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .test-image {
+      max-width: 300px;
+      height: 200px;
+      object-fit: cover;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+  </style>
+</head>
+<body>
+  <h1>Teste de Carregamento de Imagens</h1>
+  
+  <div class="image-test">
+    <h2>Imagem de Produto Real</h2>
+    <img id="real-image" class="test-image" src="/uploads/imagem-1760659184375-587815905.jpg" alt="Teste de imagem real">
+    <div id="real-status" class="status">Verificando...</div>
+  </div>
+  
+  <div class="image-test">
+    <h2>Imagem SVG Placeholder</h2>
+    <img id="svg-image" class="test-image" src="" alt="Teste de SVG placeholder">
+    <div id="svg-status" class="status">Verificando...</div>
+  </div>
+  
+  <div class="image-test">
+    <h2>Imagem com Erro (Fallback SVG)</h2>
+    <img id="error-image" class="test-image" src="/uploads/imagem-inexistente.jpg" alt="Teste de fallback">
+    <div id="error-status" class="status">Verificando...</div>
+  </div>
+
+  <script>
+    // Função para gerar SVG placeholder inline
+    function getPlaceholderSVG(width, height, text = '') {
+      const encodedText = encodeURIComponent(text);
+      return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}' viewBox='0 0 ${width} ${height}'%3E%3Crect width='100%25' height='100%25' fill='%23ddd'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial, sans-serif' font-size='${Math.min(width, height) / 8}' fill='%23666'%3E${encodedText}%3C/text%3E%3C/svg%3E`;
+    }
+
+    // Testar imagem real
+    const realImage = document.getElementById('real-image');
+    const realStatus = document.getElementById('real-status');
+    
+    realImage.onload = function() {
+      realStatus.textContent = '✓ Imagem carregada com sucesso!';
+      realStatus.className = 'status success';
+    };
+    
+    realImage.onerror = function() {
+      realStatus.textContent = '✗ Falha ao carregar imagem';
+      realStatus.className = 'status error';
+    };
+
+    // Testar SVG placeholder
+    const svgImage = document.getElementById('svg-image');
+    const svgStatus = document.getElementById('svg-status');
+    
+    svgImage.src = getPlaceholderSVG(300, 200, 'Placeholder SVG');
+    
+    svgImage.onload = function() {
+      svgStatus.textContent = '✓ SVG placeholder carregado com sucesso!';
+      svgStatus.className = 'status success';
+    };
+    
+    svgImage.onerror = function() {
+      svgStatus.textContent = '✗ Falha ao carregar SVG placeholder';
+      svgStatus.className = 'status error';
+    };
+
+    // Testar fallback de erro
+    const errorImage = document.getElementById('error-image');
+    const errorStatus = document.getElementById('error-status');
+    
+    errorImage.onerror = function() {
+      errorStatus.textContent = 'ℹ Imagem não encontrada - usando fallback SVG';
+      errorStatus.className = 'status success';
+      // Aplicar fallback SVG
+      this.src = getPlaceholderSVG(300, 200, 'Imagem não encontrada');
+      this.onerror = null; // Prevenir loop infinito
+    };
+  </script>
+</body>
+</html>

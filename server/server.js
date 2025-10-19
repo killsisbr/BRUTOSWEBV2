@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import WhatsAppService from './whatsapp-service.js';
 import DeliveryService from './services/delivery-service.js';
+import { darkenColor, lightenColor } from './helpers/colorHelper.js';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -17,6 +18,10 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3005;
+
+// Configurar EJS como template engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
 // Middleware para servir arquivos estáticos
 app.use(express.static(path.join(__dirname, '../public')));
@@ -80,6 +85,11 @@ app.get('/', (req, res) => {
 // Rota para pedidos via WhatsApp
 app.get('/pedido', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/pedido.html'));
+});
+
+// Rota para página de personalização
+app.get('/custom', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/custom.html'));
 });
 
 // Endpoint para pegar produtos
@@ -365,6 +375,53 @@ app.post('/api/clientes', async (req, res) => {
   } catch (error) {
     console.error('Erro ao salvar cliente:', error);
     res.status(500).json({ error: 'Erro ao salvar cliente' });
+  }
+});
+
+// Endpoint para salvar configurações de personalização
+app.post('/api/custom-settings', async (req, res) => {
+  try {
+    const settings = req.body;
+    
+    // Salvar configurações em um arquivo JSON
+    const settingsPath = path.join(__dirname, 'custom-settings.json');
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    
+    res.json({ 
+      success: true, 
+      message: 'Configurações salvas com sucesso!' 
+    });
+  } catch (error) {
+    console.error('Erro ao salvar configurações:', error);
+    res.status(500).json({ error: 'Erro ao salvar configurações' });
+  }
+});
+
+// Endpoint para obter configurações de personalização
+app.get('/api/custom-settings', (req, res) => {
+  try {
+    const settingsPath = path.join(__dirname, 'custom-settings.json');
+    
+    if (fs.existsSync(settingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      res.json(settings);
+    } else {
+      // Retornar configurações padrão
+      res.json({
+        restaurantName: 'Brutus Burger',
+        contact: '(42) 9 99830-2047',
+        primaryColor: '#27ae60',
+        secondaryColor: '#f39c12',
+        backgroundColor: '#121212',
+        pixKey: '',
+        pixName: '',
+        logo: null,
+        theme: 'dark'
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao carregar configurações:', error);
+    res.status(500).json({ error: 'Erro ao carregar configurações' });
   }
 });
 

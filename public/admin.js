@@ -635,4 +635,12 @@ document.addEventListener('DOMContentLoaded', () => {
   verificarElementos();
   carregarProdutos();
   // REMOVED: carregarConfiguracaoImpressao();
+  
+  // Adicionar evento para o botão de personalização
+  const customizationBtn = document.getElementById('customization-btn');
+  if (customizationBtn) {
+    customizationBtn.addEventListener('click', () => {
+      window.location.href = '/custom.html';
+    });
+  }
 });

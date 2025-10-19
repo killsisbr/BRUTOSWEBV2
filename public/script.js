@@ -709,4 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
+  
+  // Prevenir scroll na página
+  document.body.style.overflow = 'hidden';
 });

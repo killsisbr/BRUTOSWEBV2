@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personalização - BrutusWeb</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="mobile-container">
+    <!-- Cabeçalho -->
+    <header class="app-header">
+      <h1>Personalização</h1>
+      <div class="header-actions">
+        <button id="back-to-admin" class="icon-button" title="Voltar ao Admin">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+      </div>
+    </header>
+
+    <section class="admin-products">
+      <h2>Configurações do Restaurante</h2>
+      
+      <div class="settings-container">
+        <!-- Seção de Informações Básicas -->
+        <div class="setting-item">
+          <div class="setting-content">
+            <h3>Informações Básicas</h3>
+            <div class="form-group">
+              <label for="restaurant-name">Nome do Restaurante:</label>
+              <input type="text" id="restaurant-name" class="form-control" placeholder="Nome do seu restaurante">
+            </div>
+            
+            <div class="form-group">
+              <label for="restaurant-contact">Contato:</label>
+              <input type="text" id="restaurant-contact" class="form-control" placeholder="(XX) XXXXX-XXXX">
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção de Cores -->
+        <div class="setting-item">
+          <div class="setting-content">
+            <h3>Personalização de Cores</h3>
+            
+            <div class="form-group">
+              <label for="primary-color">Cor Primária:</label>
+              <div class="color-picker-container">
+                <input type="color" id="primary-color" class="color-picker">
+                <input type="text" id="primary-color-value" class="form-control color-value" placeholder="#27ae60">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="secondary-color">Cor Secundária:</label>
+              <div class="color-picker-container">
+                <input type="color" id="secondary-color" class="color-picker">
+                <input type="text" id="secondary-color-value" class="form-control color-value" placeholder="#f39c12">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="background-color">Cor de Fundo:</label>
+              <div class="color-picker-container">
+                <input type="color" id="background-color" class="color-picker">
+                <input type="text" id="background-color-value" class="form-control color-value" placeholder="#121212">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção PIX -->
+        <div class="setting-item">
+          <div class="setting-content">
+            <h3>Informações PIX</h3>
+            <div class="form-group">
+              <label for="pix-key">Chave PIX:</label>
+              <input type="text" id="pix-key" class="form-control" placeholder="Seu CPF, telefone ou e-mail">
+            </div>
+            
+            <div class="form-group">
+              <label for="pix-name">Nome do Titular:</label>
+              <input type="text" id="pix-name" class="form-control" placeholder="Nome conforme registrado no banco">
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção de Logo -->
+        <div class="setting-item">
+          <div class="setting-content">
+            <h3>Logo do Restaurante</h3>
+            <div class="form-group">
+              <label for="logo-upload">Upload da Logo:</label>
+              <input type="file" id="logo-upload" class="form-control" accept="image/*">
+              <div id="logo-preview" class="logo-preview">
+                <p>Nenhuma logo selecionada</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção de Tema -->
+        <div class="setting-item">
+          <div class="setting-content">
+            <h3>Tema</h3>
+            <div class="form-group">
+              <label for="theme-selector">Tema do Site:</label>
+              <select id="theme-selector" class="form-control">
+                <option value="dark">Escuro (Padrão)</option>
+                <option value="light">Claro</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botão de Salvar -->
+        <div class="setting-item">
+          <button id="save-settings" class="checkout-button">
+            <i class="fas fa-save"></i> Salvar Configurações
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Preview da Personalização -->
+    <section class="admin-products">
+      <h2>Pré-visualização</h2>
+      <div id="preview-container" class="preview-container">
+        <div class="preview-header">
+          <h3 id="preview-restaurant-name">Nome do Restaurante</h3>
+        </div>
+        <div class="preview-content">
+          <div class="preview-product-card">
+            <div class="preview-product-info">
+              <h4>Produto de Exemplo</h4>
+              <p>Descrição do produto de exemplo</p>
+              <div class="preview-product-price">R$ 25,00</div>
+            </div>
+            <button class="preview-add-to-cart">Adicionar ao Carrinho</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="custom.js"></script>
+</body>
+</html>
