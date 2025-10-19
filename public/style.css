@@ -207,6 +207,7 @@ body {
   cursor: grab;
   user-select: none;
   transition: transform 0.2s ease;
+  touch-action: pan-y; /* Permite scroll vertical mas não horizontal */
 }
 
 .current-product:active {
@@ -232,6 +233,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   cursor: grab;
+  touch-action: manipulation; /* Melhora a resposta ao toque */
 }
 
 .product-card:active {
