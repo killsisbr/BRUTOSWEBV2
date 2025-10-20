@@ -124,10 +124,10 @@ Qualquer dúvida, estou aqui para ajudar!`;
 
   // Manipular solicitação de pedido
   async handleOrderRequest(chat, whatsappId) {
-    const orderMessage = `🍕 Vamos criar seu pedido!
+    const orderMessage = `🍔 Vamos criar seu pedido!
     
 Clique no link abaixo para acessar seu pedido personalizado:
-http://localhost:3005/pedido?whatsapp=${encodeURIComponent(whatsappId)}
+https://brutusburger.online/pedido?whatsapp=${encodeURIComponent(whatsappId)}
 
 Após finalizar seu pedido no site, você receberá um resumo aqui no WhatsApp!`;
     
@@ -148,6 +148,7 @@ Após finalizar seu pedido no site, você receberá um resumo aqui no WhatsApp!`
     const summaryMessage = `✅ *Pedido Confirmado!*
     
 Número do pedido: *#${orderData.pedidoId}*
+Link para acompanhar seu pedido: https://brutusburger.online/pedido/${orderData.pedidoId}
     
 Itens:
 ${itemsList}
@@ -237,6 +238,7 @@ ${statusMessages[status] || 'Seu pedido foi atualizado!'}`;
       
       // Montar a mensagem para o grupo
       const groupMessage = `🍔 *NOVO PEDIDO #${orderData.pedidoId}*
+Link para acompanhar o pedido: https://brutusburger.online/pedido/${orderData.pedidoId}
       
 Itens:
 ${itemsList}

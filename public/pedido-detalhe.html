@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrutusWeb - Detalhes do Pedido</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="mobile-container">
+    <!-- Cabeçalho -->
+    <header class="app-header">
+      <h1>Brutus Burger</h1>
+    </header>
+
+    <!-- Conteúdo principal -->
+    <main class="pedido-detalhe-container">
+      <div class="pedido-detalhe-header">
+        <h2>Detalhes do Pedido</h2>
+        <div class="pedido-id">Pedido #<span id="pedido-id">0000</span></div>
+      </div>
+
+      <div class="pedido-status">
+        <div class="status-badge" id="status-badge">
+          <i class="fas fa-clock"></i>
+          <span id="status-text">Carregando...</span>
+        </div>
+      </div>
+
+      <div class="pedido-info-section">
+        <h3><i class="fas fa-user"></i> Informações do Cliente</h3>
+        <div class="info-item">
+          <span class="label">Nome:</span>
+          <span id="cliente-nome">-</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Telefone:</span>
+          <span id="cliente-telefone">-</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Endereço:</span>
+          <span id="cliente-endereco">-</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Forma de Pagamento:</span>
+          <span id="forma-pagamento">-</span>
+        </div>
+      </div>
+
+      <div class="pedido-itens-section">
+        <h3><i class="fas fa-list"></i> Itens do Pedido</h3>
+        <div class="itens-list" id="itens-list">
+          <!-- Itens serão carregados aqui -->
+        </div>
+      </div>
+
+      <div class="pedido-total-section">
+        <div class="total-row">
+          <span>Total:</span>
+          <span id="pedido-total">R$ 0,00</span>
+        </div>
+      </div>
+
+      <div class="actions-section">
+        <button id="whatsapp-btn" class="whatsapp-button">
+          <i class="fab fa-whatsapp"></i> Abrir no WhatsApp
+        </button>
+      </div>
+    </main>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+      <div class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Carregando detalhes do pedido...</p>
+      </div>
+    </div>
+
+    <!-- Error message -->
+    <div id="error-message" class="error-message" style="display: none;">
+      <i class="fas fa-exclamation-circle"></i>
+      <p id="error-text">Pedido não encontrado.</p>
+      <button id="retry-btn" class="retry-button">Tentar novamente</button>
+    </div>
+  </div>
+
+  <script src="pedido-detalhe.js"></script>
+</body>
+</html>

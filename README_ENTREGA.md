@@ -63,10 +63,10 @@ As regras de precificação estão configuradas em `server/config/delivery.confi
 
 ```javascript
 pricingRules: [
-  { maxDistance: 2, price: 5.00 },     // Até 2km: R$ 5,00
-  { maxDistance: 5, price: 8.00 },     // Até 5km: R$ 8,00
-  { maxDistance: 10, price: 12.00 },   // Até 10km: R$ 12,00
-  { maxDistance: 20, price: 15.00 }    // Até 20km: R$ 15,00 (mais de 10km + R$1/km)
+  { maxDistance: 4, price: 7.00 },     // Até 4km: R$ 7,00
+  { maxDistance: 10, price: 15.00 },   // Até 10km: R$ 15,00
+  { maxDistance: 20, price: 25.00 },   // Até 20km: R$ 25,00
+  { maxDistance: 70, price: 65.00 }    // Até 70km: R$ 65,00 (valor máximo)
 ],
 ```
 
@@ -80,6 +80,16 @@ pricingRules: [
 4. O navegador solicita permissão para acessar a localização
 5. O sistema calcula a distância e o valor da entrega
 6. O valor é adicionado automaticamente ao total do pedido
+
+### Cálculo por Endereço Digitado
+
+1. O cliente digita o endereço completo no campo apropriado
+2. Ao sair do campo (evento blur), o sistema:
+   - Converte automaticamente o endereço em coordenadas geográficas
+   - Verifica se o endereço está na área de entrega (Imbituva)
+   - Calcula a distância entre o restaurante e o endereço do cliente
+   - Determina o valor da entrega com base nas regras de precificação
+   - Atualiza o total do pedido com o valor da entrega
 
 ### Via WhatsApp (futuro)
 
@@ -99,46 +109,6 @@ Você pode testar com coordenadas conhecidas para verificar se o cálculo está 
 - São Paulo, SP: `-23.5505, -46.6333`
 
 ## Solução de Problemas
-
-### Erros comuns
-
-1. **"Geolocalização não é suportada"**: O navegador não suporta geolocalização ou ela está desativada
-2. **"Permissão negada"**: O usuário negou a permissão de localização
-3. **"Tempo limite esgotado"**: Demorou muito para obter a localização (verifique o GPS)
-
-### Logs
-
-Verifique o console do servidor para mensagens de erro relacionadas ao cálculo de entrega:
-
-```bash
-npm start
-```
-
-## Personalização
-
-### Alterar regras de precificação
-
-Edite `server/config/delivery.config.js`:
-
-```javascript
-pricingRules: [
-  { maxDistance: 3, price: 6.00 },     // Até 3km: R$ 6,00
-  { maxDistance: 7, price: 10.00 },    // Até 7km: R$ 10,00
-  // ...
-],
-```
-
-### Alterar área máxima de entrega
-
-```javascript
-maxDeliveryDistance: 25, // 25km em vez de 20km
-```
-
-### Alterar mensagem de fora da área
-
-```javascript
-outOfRangeMessage: "Desculpe, entregamos apenas até 25km de distância."
-```
 
 ## Segurança
 

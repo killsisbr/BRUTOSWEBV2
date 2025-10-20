@@ -1637,6 +1637,214 @@ body {
   height: 36px;
   display: flex;
   align-items: center;
+
+/* Estilos para a página de detalhes do pedido */
+.pedido-detalhe-container {
+  padding: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.pedido-detalhe-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.pedido-detalhe-header h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+}
+
+.pedido-id {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.pedido-status {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: white;
+}
+
+.pedido-info-section, .pedido-itens-section {
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-dark);
+}
+
+.pedido-info-section h3, .pedido-itens-section h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.itens-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.item-row:last-child {
+  border-bottom: none;
+}
+
+.item-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.item-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.item-quantity {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.item-price {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.pedido-total-section {
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-dark);
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.actions-section {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.whatsapp-button {
+  background: #25D366;
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 15px 25px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.3s;
+}
+
+.whatsapp-button:hover {
+  background: #128C7E;
+}
+
+/* Loading overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.loading-spinner {
+  text-align: center;
+  color: white;
+}
+
+.loading-spinner i {
+  font-size: 3rem;
+  margin-bottom: 20px;
+}
+
+/* Error message */
+.error-message {
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  text-align: center;
+  margin: 20px 0;
+  border: 1px solid var(--border-dark);
+}
+
+.error-message p {
+  color: var(--text-primary);
+  margin-bottom: 15px;
+}
+
+.retry-button {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 10px 20px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.no-products {
+  text-align: center;
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 40px 20px;
+}
   justify-content: center;
 }
 
@@ -1873,6 +2081,36 @@ body {
   align-items: center;
   justify-content: center;
   font-weight: bold;
+}
+
+/* Botão de calcular taxa de entrega */
+.calcular-taxa-btn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.calcular-taxa-btn:hover {
+  background-color: #2980b9;
+}
+
+.calcular-taxa-btn:active {
+  background-color: #21618c;
+}
+
+.calcular-taxa-btn i {
+  font-size: 18px;
 }
 
 /* Estilo específico para o ícone do carrinho */

@@ -7,6 +7,7 @@ export const deliveryConfig = {
   },
   
   // Regras de precificação por distância (em quilômetros)
+  // O sistema seleciona a primeira regra que corresponde à distância máxima
   pricingRules: [
     { maxDistance: 4, price: 7.00 },     // Até 4km: R$ 7,00
     { maxDistance: 10, price: 15.00 },   // Até 10km: R$ 15,00

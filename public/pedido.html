@@ -149,6 +149,9 @@
               <div class="form-group">
                 <label for="client-address">Endereço: *</label>
                 <textarea id="client-address" placeholder="Rua, número, bairro, complemento"></textarea>
+                <button type="button" id="calcular-taxa-btn" class="calcular-taxa-btn" style="margin-top: 10px; display: none;">
+                  <i class="fas fa-calculator"></i> Calcular Taxa de Entrega
+                </button>
                 <div id="previous-address" class="previous-address" style="display: none;">
                   <label>
                     <input type="checkbox" id="use-previous-address" checked>
@@ -232,14 +235,10 @@
         </div>
       </div>
     </div>
-    <!-- Indicador de swipe para cima (carrinho) -->
-    <div class="swipe-up-indicator">
-      <div class="swipe-up-bar"></div>
-      <div class="swipe-up-text">Deslize para cima para ver o carrinho</div>
-    </div>
   </div>
   <script src="pedido-script.js"></script>
   <script src="entrega.js"></script>
   <script src="mapa.js"></script>
+  <script src="calcular-taxa.js"></script>
 </body>
 </html>

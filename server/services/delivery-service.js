@@ -167,16 +167,134 @@ class DeliveryService {
     }
   }
 
+  // Nova função: Converter endereço em coordenadas usando OpenRouteService (geocodificação direta)
+  async converterEnderecoEmCoordenadas(endereco) {
+    try {
+      const url = `https://api.openrouteservice.org/geocode/search`;
+      const response = await axios.get(url, {
+        params: {
+          api_key: this.orsApiKey,
+          text: endereco,
+          size: 1
+        }
+      });
+
+      if (response.data && response.data.features && response.data.features.length > 0) {
+        const feature = response.data.features[0];
+        const coordinates = feature.geometry.coordinates;
+        const [lng, lat] = coordinates;
+        
+        return {
+          lat: lat,
+          lng: lng
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Erro ao converter endereço em coordenadas:', error.message);
+      return null;
+    }
+  }
+
+  // Nova função: Calcular taxa de entrega com base no endereço digitado
+  async calcularTaxaPorEndereco(endereco) {
+    try {
+      // 1. Converter endereço em coordenadas
+      const coordinates = await this.converterEnderecoEmCoordenadas(endereco);
+      
+      if (!coordinates) {
+        return {
+          success: false,
+          error: 'Não foi possível encontrar as coordenadas para o endereço informado. Por favor, verifique se o endereço está correto.'
+        };
+      }
+      
+      // 2. Verificar se está em Imbituva
+      const cidadeValida = await this.verificarSeEstaEmImbituva(coordinates.lat, coordinates.lng);
+      
+      // Se não estiver em Imbituva, calcular taxa mínima
+      if (!cidadeValida) {
+        // Calcular distância entre restaurante e cliente
+        const distance = await this.calculateDistance(
+          this.restaurantCoordinates,
+          coordinates
+        );
+        
+        // Obter a taxa mínima (primeira regra de precificação)
+        const minimumPrice = this.pricingRules[0].price;
+        
+        // Converter coordenadas em endereço (para exibição)
+        const enderecoCompleto = await this.converterCoordenadasEmEndereco(coordinates.lat, coordinates.lng);
+        
+        return {
+          success: true,
+          distance: distance,
+          price: minimumPrice,
+          error: null,
+          coordinates: coordinates,
+          endereco: enderecoCompleto || endereco,
+          isOutsideImbituva: true
+        };
+      }
+      
+      // 3. Calcular distância entre restaurante e cliente
+      const distance = await this.calculateDistance(
+        this.restaurantCoordinates,
+        coordinates
+      );
+      
+      // 4. Calcular valor da entrega
+      const deliveryInfo = this.calculateDeliveryPrice(distance);
+      
+      // 5. Converter coordenadas em endereço (para exibição)
+      const enderecoCompleto = await this.converterCoordenadasEmEndereco(coordinates.lat, coordinates.lng);
+      
+      return {
+        success: true,
+        distance: deliveryInfo.distance,
+        price: deliveryInfo.price,
+        error: deliveryInfo.error,
+        coordinates: coordinates,
+        endereco: enderecoCompleto || endereco
+      };
+    } catch (error) {
+      console.error('Erro ao calcular taxa por endereço:', error);
+      return {
+        success: false,
+        error: 'Erro ao calcular taxa de entrega. Por favor, tente novamente.'
+      };
+    }
+  }
+
   // Processar coordenadas do cliente e calcular entrega
   async processDelivery(clientCoordinates) {
     try {
       // Verificar se a localização está em Imbituva
       const cidadeValida = await this.verificarSeEstaEmImbituva(clientCoordinates.lat, clientCoordinates.lng);
       
+      // Se não estiver em Imbituva, calcular taxa mínima
       if (!cidadeValida) {
+        // Calcular distância entre restaurante e cliente
+        const distance = await this.calculateDistance(
+          this.restaurantCoordinates,
+          clientCoordinates
+        );
+        
+        // Obter a taxa mínima (primeira regra de precificação)
+        const minimumPrice = this.pricingRules[0].price;
+        
+        // Converter coordenadas em endereço
+        const endereco = await this.converterCoordenadasEmEndereco(clientCoordinates.lat, clientCoordinates.lng);
+        
         return {
-          success: false,
-          error: "❌ *Atendemos apenas em Imbituva!*\n\nSua localização não está em Imbituva, PR. Por favor, digite um endereço em Imbituva ou verifique se sua localização está correta.\n\n_Exemplo: Rua das Flores, 123, Centro, Imbituva_"
+          success: true,
+          distance: distance,
+          price: minimumPrice,
+          error: null,
+          coordinates: clientCoordinates,
+          endereco: endereco,
+          isOutsideImbituva: true
         };
       }
 

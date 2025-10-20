@@ -18,8 +18,6 @@ let whatsappId = null;
 let clienteInfo = null;
 let entregaInfo = null; // Informações de entrega
 
-
-
 // Elementos do DOM
 const elements = {
   currentProduct: document.getElementById('current-product'),
@@ -58,7 +56,6 @@ const elements = {
   categoryPorcoesBtn: document.getElementById('category-porcoes'),
   // Elementos do formulário do cliente
   clientName: document.getElementById('client-name'),
-  // REMOVIDO: clientPhone: document.getElementById('client-phone'),
   clientAddress: document.getElementById('client-address'),
   paymentMethod: document.getElementById('payment-method'),
   valorPago: document.getElementById('valor-pago'), // Novo elemento para valor pago
@@ -75,11 +72,50 @@ const elements = {
   clientCoordinates: document.getElementById('client-coordinates')
 };
 
+// Verificar se todos os elementos foram encontrados
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('Verificando elementos do DOM:');
+  Object.keys(elements).forEach(key => {
+    if (elements[key]) {
+      console.log(`${key}: encontrado`);
+    } else {
+      console.error(`${key}: NÃO ENCONTRADO`);
+    }
+  });
+});
+
 // Função para carregar produtos
 async function carregarProdutos() {
   try {
+    console.log('Iniciando carregamento de produtos...');
     const res = await fetch('/api/produtos');
-    produtos = await res.json();
+    console.log('Response status:', res.status);
+    console.log('Response headers:', [...res.headers.entries()]);
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    
+    const rawData = await res.text();
+    console.log('Raw data received:', rawData);
+    
+    // Tentar parsear como JSON
+    try {
+      produtos = JSON.parse(rawData);
+      console.log('Produtos carregados com sucesso:', produtos);
+    } catch (parseError) {
+      console.error('Erro ao parsear JSON:', parseError);
+      console.error('Dados recebidos:', rawData);
+      return;
+    }
+    
+    // Verificar se produtos foram carregados corretamente
+    if (!produtos || produtos.length === 0) {
+      console.error('Nenhum produto encontrado ou erro no carregamento');
+      return;
+    }
+    
+    console.log('Total de produtos carregados:', produtos.length);
     
     // Organizar produtos por categoria
     organizarProdutosPorCategoria();
@@ -88,71 +124,190 @@ async function carregarProdutos() {
     atualizarCarrossel();
   } catch (error) {
     console.error('Erro ao carregar produtos:', error);
+    console.error('Stack trace:', error.stack);
   }
 }
 
 // Organizar produtos por categoria
 function organizarProdutosPorCategoria() {
-  produtosPorCategoria.lanches = produtos.filter(produto => 
-    produto.categoria.includes('Lanche') || produto.categoria.includes('Lanches') || produto.categoria.includes('Hambúrguer') || produto.categoria.includes('Burger')
-  );
+  console.log('Iniciando organização de produtos por categoria...');
+  console.log('Produtos totais recebidos:', produtos);
   
-  produtosPorCategoria.bebidas = produtos.filter(produto => 
-    produto.categoria.includes('Bebida') || produto.categoria.includes('Bebidas') || produto.categoria.includes('Refrigerante') || produto.categoria.includes('Suco')
-  );
-  
-  produtosPorCategoria.porcoes = produtos.filter(produto => 
-    produto.categoria.includes('Porção') || produto.categoria.includes('Porções') || produto.categoria.includes('Porcao') || produto.categoria.includes('Porcoes')
-  );
-  
-  // Adicionando filtro para adicionais
-  produtosPorCategoria.adicionais = produtos.filter(produto => 
-    produto.categoria.includes('Adicional') || produto.categoria.includes('Adicionais') || produto.categoria.includes('Extra')
-  );
-  
-  // Se alguma categoria estiver vazia, usar todos os produtos
-  if (produtosPorCategoria.lanches.length === 0) {
-    produtosPorCategoria.lanches = produtos;
+  // Verificar se produtos existem
+  if (!produtos || produtos.length === 0) {
+    console.error('Nenhum produto para organizar');
+    return;
   }
+  
+  console.log('Número total de produtos:', produtos.length);
+  
+  // Limpar categorias antes de reorganizar
+  produtosPorCategoria = {
+    lanches: [],
+    bebidas: [],
+    porcoes: [],
+    adicionais: []
+  };
+  
+  console.log('Categorias limpas, iniciando filtragem...');
+  
+  // Filtrar produtos por categoria
+  produtos.forEach((produto, index) => {
+    console.log(`Processando produto ${index + 1}:`, produto);
+    console.log(`Categoria do produto ${index + 1}:`, produto.categoria);
+    
+    if (produto.categoria) {
+      // Verificar se é um lanche
+      if (produto.categoria.includes('Lanche') || 
+          produto.categoria.includes('Lanches') || 
+          produto.categoria.includes('Hambúrguer') || 
+          produto.categoria.includes('Burger') ||
+          produto.categoria.includes('Lanches Especiais') ||
+          produto.categoria.includes('Lanches Tradicionais') ||
+          produto.categoria.includes('Especiais') ||
+          produto.categoria.includes('Tradicionais')) {
+        produtosPorCategoria.lanches.push(produto);
+        console.log('Produto adicionado aos lanches');
+      }
+      // Verificar se é uma bebida
+      else if (produto.categoria.includes('Bebida') || 
+               produto.categoria.includes('Bebidas') || 
+               produto.categoria.includes('Refrigerante') || 
+               produto.categoria.includes('Suco') ||
+               produto.categoria.includes('Coca') ||
+               produto.categoria.includes('Guaraná')) {
+        produtosPorCategoria.bebidas.push(produto);
+        console.log('Produto adicionado às bebidas');
+      }
+      // Verificar se é uma porção
+      else if (produto.categoria.includes('Porção') || 
+               produto.categoria.includes('Porções') || 
+               produto.categoria.includes('Porcao') || 
+               produto.categoria.includes('Porcoes') ||
+               produto.categoria.includes('Batata') ||
+               produto.categoria.includes('Onion') ||
+               produto.categoria.includes('Calabresa')) {
+        produtosPorCategoria.porcoes.push(produto);
+        console.log('Produto adicionado às porções');
+      }
+      // Verificar se é um adicional
+      else if (produto.categoria.includes('Adicional') || 
+               produto.categoria.includes('Adicionais') || 
+               produto.categoria.includes('Extra') ||
+               produto.categoria.includes('Queijo') ||
+               produto.categoria.includes('Bacon') ||
+               produto.categoria.includes('Catupiry') ||
+               produto.categoria.includes('Molho') ||
+               produto.categoria.includes('Hambúrguer')) {
+        produtosPorCategoria.adicionais.push(produto);
+        console.log('Produto adicionado aos adicionais');
+      }
+      // Se não se encaixar em nenhuma categoria específica, adicionar aos lanches por padrão
+      else {
+        produtosPorCategoria.lanches.push(produto);
+        console.log('Produto adicionado aos lanches (categoria padrão)');
+      }
+    } else {
+      // Se não tiver categoria definida, adicionar aos lanches por padrão
+      produtosPorCategoria.lanches.push(produto);
+      console.log('Produto adicionado aos lanches (sem categoria definida)');
+    }
+  });
+  
+  console.log('Organização concluída. Produtos por categoria:', produtosPorCategoria);
+  
+  // Verificar se há produtos em cada categoria
+  Object.keys(produtosPorCategoria).forEach(categoria => {
+    console.log(`Categoria ${categoria}: ${produtosPorCategoria[categoria].length} produtos`);
+  });
 }
 
 // Atualizar carrossel com base na categoria selecionada
 function atualizarCarrossel() {
+  console.log('Iniciando atualização do carrossel...');
+  console.log('Categoria atual:', categoriaAtual);
   const produtosDaCategoria = produtosPorCategoria[categoriaAtual];
+  console.log('Produtos da categoria atual:', categoriaAtual, produtosDaCategoria);
   
-  if (produtosDaCategoria.length > 0) {
-    // Garantir que o índice esteja dentro dos limites
-    if (indiceProdutoAtual >= produtosDaCategoria.length) {
-      indiceProdutoAtual = 0;
+  // Verificar se há produtos na categoria
+  if (!produtosDaCategoria || produtosDaCategoria.length === 0) {
+    console.log('Nenhum produto disponível nesta categoria');
+    if (elements.currentProduct) {
+      elements.currentProduct.innerHTML = `
+        <div class="no-products">
+          <p>Nenhum produto disponível nesta categoria</p>
+        </div>
+      `;
     }
-    
-    renderizarProdutoAtual();
-    renderizarIndicadoresCarrossel();
-    
-    // Atualizar estado dos botões
-    atualizarEstadoBotoes();
-  } else {
-    // Se não houver produtos na categoria, mostrar mensagem
-    elements.currentProduct.innerHTML = `
-      <div class="no-products">
-        <p>Nenhum produto disponível nesta categoria</p>
-      </div>
-    `;
-    elements.carouselDots.innerHTML = '';
+    if (elements.carouselDots) {
+      elements.carouselDots.innerHTML = '';
+    }
     
     // Desativar botões quando não há produtos
     if (elements.prevProductBtn) elements.prevProductBtn.disabled = true;
     if (elements.nextProductBtn) elements.nextProductBtn.disabled = true;
+    return;
   }
+  
+  console.log('Produtos encontrados na categoria, total:', produtosDaCategoria.length);
+  
+  // Garantir que o índice esteja dentro dos limites
+  if (indiceProdutoAtual >= produtosDaCategoria.length) {
+    indiceProdutoAtual = 0;
+  }
+  
+  console.log('Índice do produto atual:', indiceProdutoAtual);
+  renderizarProdutoAtual();
+  renderizarIndicadoresCarrossel();
+  
+  // Atualizar estado dos botões
+  atualizarEstadoBotoes();
 }
 
 // Renderizar produto atual no carrossel
 function renderizarProdutoAtual() {
+  console.log('Iniciando renderização do produto atual...');
   const produtosDaCategoria = produtosPorCategoria[categoriaAtual];
   
-  if (produtosDaCategoria.length === 0) return;
+  if (!produtosDaCategoria || produtosDaCategoria.length === 0) {
+    console.log('Nenhum produto para renderizar');
+    return;
+  }
+  
+  console.log('Índice do produto atual:', indiceProdutoAtual);
+  console.log('Total de produtos na categoria:', produtosDaCategoria.length);
+  
+  // Verificar se o índice está dentro dos limites
+  if (indiceProdutoAtual < 0 || indiceProdutoAtual >= produtosDaCategoria.length) {
+    console.error('Índice fora dos limites:', indiceProdutoAtual);
+    indiceProdutoAtual = 0; // Resetar para o primeiro produto
+  }
   
   const produto = produtosDaCategoria[indiceProdutoAtual];
+  console.log('Produto a ser renderizado:', produto);
+  
+  if (!elements.currentProduct) {
+    console.error('Elemento currentProduct não encontrado');
+    return;
+  }
+  
+  // Verificar se o produto tem todas as propriedades necessárias
+  if (!produto.hasOwnProperty('id')) {
+    console.error('Produto sem ID:', produto);
+    return;
+  }
+  
+  if (!produto.hasOwnProperty('nome')) {
+    console.error('Produto sem nome:', produto);
+    return;
+  }
+  
+  if (!produto.hasOwnProperty('preco')) {
+    console.error('Produto sem preço:', produto);
+    return;
+  }
+  
+  console.log('Renderizando produto com ID:', produto.id);
   
   elements.currentProduct.innerHTML = `
     <div class="product-card">
@@ -173,8 +328,47 @@ function renderizarProdutoAtual() {
     </div>
   `;
   
+  console.log('Produto renderizado com sucesso');
+  
   // Atualizar indicadores ativos
   atualizarIndicadoresAtivos();
+}
+
+// Renderizar indicadores do carrossel
+function renderizarIndicadoresCarrossel() {
+  console.log('Iniciando renderização dos indicadores do carrossel...');
+  const produtosDaCategoria = produtosPorCategoria[categoriaAtual];
+  
+  console.log('Produtos da categoria para indicadores:', produtosDaCategoria);
+  
+  if (!elements.carouselDots) {
+    console.error('Elemento carouselDots não encontrado');
+    return;
+  }
+  
+  elements.carouselDots.innerHTML = '';
+  
+  if (!produtosDaCategoria || produtosDaCategoria.length === 0) {
+    console.log('Nenhum indicador para renderizar - categoria vazia');
+    return;
+  }
+  
+  console.log('Número de indicadores a serem criados:', produtosDaCategoria.length);
+  
+  produtosDaCategoria.forEach((produto, index) => {
+    const dot = document.createElement('div');
+    dot.className = `dot ${index === indiceProdutoAtual ? 'active' : ''}`;
+    dot.dataset.index = index;
+    dot.addEventListener('click', () => {
+      console.log('Clicou no indicador:', index);
+      indiceProdutoAtual = index;
+      renderizarProdutoAtual();
+    });
+    elements.carouselDots.appendChild(dot);
+    console.log('Indicador criado para índice:', index, 'produto:', produto.nome);
+  });
+  
+  console.log('Indicadores renderizados:', elements.carouselDots.children.length);
 }
 
 // Mostrar modal de seleção de quantidade
@@ -279,60 +473,80 @@ function atualizarQuantidade(delta) {
   }
 }
 
-// Renderizar indicadores do carrossel
-function renderizarIndicadoresCarrossel() {
-  const produtosDaCategoria = produtosPorCategoria[categoriaAtual];
-  
-  elements.carouselDots.innerHTML = '';
-  
-  produtosDaCategoria.forEach((_, index) => {
-    const dot = document.createElement('div');
-    dot.className = `dot ${index === indiceProdutoAtual ? 'active' : ''}`;
-    dot.dataset.index = index;
-    dot.addEventListener('click', () => {
-      indiceProdutoAtual = index;
-      renderizarProdutoAtual();
-    });
-    elements.carouselDots.appendChild(dot);
-  });
-}
-
 // Atualizar indicadores ativos
 function atualizarIndicadoresAtivos() {
+  console.log('Iniciando atualização dos indicadores ativos...');
+  
+  if (!elements.carouselDots) {
+    console.error('Elemento carouselDots não encontrado');
+    return;
+  }
+  
   const dots = elements.carouselDots.querySelectorAll('.dot');
+  console.log('Número de dots encontrados:', dots.length);
+  console.log('Índice do produto atual:', indiceProdutoAtual);
+  
   dots.forEach((dot, index) => {
     if (index === indiceProdutoAtual) {
       dot.classList.add('active');
+      console.log('Dot', index, 'ativado');
     } else {
       dot.classList.remove('active');
+      console.log('Dot', index, 'desativado');
     }
   });
 }
 
 // Navegar para o próximo produto
 function proximoProduto() {
+  console.log('Navegando para o próximo produto');
   const produtosDaCategoria = produtosPorCategoria[categoriaAtual];
   
-  if (produtosDaCategoria.length === 0) return;
+  if (!produtosDaCategoria || produtosDaCategoria.length === 0) {
+    console.log('Nenhuma categoria ativa ou categoria vazia');
+    return;
+  }
+  
+  console.log('Índice atual:', indiceProdutoAtual);
+  console.log('Total de produtos:', produtosDaCategoria.length);
   
   indiceProdutoAtual = (indiceProdutoAtual + 1) % produtosDaCategoria.length;
+  console.log('Novo índice:', indiceProdutoAtual);
+  
   renderizarProdutoAtual();
   atualizarEstadoBotoes();
 }
 
 // Navegar para o produto anterior
 function produtoAnterior() {
+  console.log('Navegando para o produto anterior');
   const produtosDaCategoria = produtosPorCategoria[categoriaAtual];
   
-  if (produtosDaCategoria.length === 0) return;
+  if (!produtosDaCategoria || produtosDaCategoria.length === 0) {
+    console.log('Nenhuma categoria ativa ou categoria vazia');
+    return;
+  }
+  
+  console.log('Índice atual:', indiceProdutoAtual);
+  console.log('Total de produtos:', produtosDaCategoria.length);
   
   indiceProdutoAtual = (indiceProdutoAtual - 1 + produtosDaCategoria.length) % produtosDaCategoria.length;
+  console.log('Novo índice:', indiceProdutoAtual);
+  
   renderizarProdutoAtual();
   atualizarEstadoBotoes();
 }
 
 // Mudar categoria
 function mudarCategoria(novaCategoria) {
+  console.log('Mudando categoria para:', novaCategoria);
+  
+  // Verificar se os elementos de categoria existem
+  if (!elements.categoryLanchesBtn || !elements.categoryBebidasBtn || !elements.categoryPorcoesBtn) {
+    console.error('Elementos de categoria não encontrados');
+    return;
+  }
+  
   // Atualizar botões
   elements.categoryLanchesBtn.classList.toggle('active', novaCategoria === 'lanches');
   elements.categoryBebidasBtn.classList.toggle('active', novaCategoria === 'bebidas');
@@ -340,9 +554,11 @@ function mudarCategoria(novaCategoria) {
   
   // Atualizar categoria atual
   categoriaAtual = novaCategoria;
+  console.log('Categoria atual definida como:', categoriaAtual);
   
   // Resetar índice do produto
   indiceProdutoAtual = 0;
+  console.log('Índice do produto resetado para:', indiceProdutoAtual);
   
   // Atualizar carrossel
   atualizarCarrossel();
@@ -674,7 +890,6 @@ async function carregarClienteInfo() {
       
       // Preencher campos do formulário com dados salvos
       elements.clientName.value = clienteInfo.nome || '';
-      // REMOVIDO: elements.clientPhone.value = clienteInfo.telefone || '';
       elements.clientAddress.value = clienteInfo.endereco || '';
       
       // Preencher automaticamente as informações salvas
@@ -705,7 +920,6 @@ async function salvarClienteInfo() {
   const clienteData = {
     whatsappId: whatsappId,
     nome: elements.clientName.value,
-    // REMOVIDO: telefone: elements.clientPhone.value,
     endereco: elements.clientAddress.value
   };
   
@@ -731,12 +945,6 @@ async function salvarClienteInfo() {
 // Event Listeners
 elements.cartIcon.addEventListener('click', () => {
   mostrarModal(elements.cartModal);
-  
-  // Esconder o indicador de swipe após o primeiro uso
-  const swipeIndicator = document.querySelector('.swipe-up-indicator');
-  if (swipeIndicator) {
-    swipeIndicator.style.display = 'none';
-  }
 });
 
 elements.checkoutBtn.addEventListener('click', () => {
@@ -804,7 +1012,6 @@ elements.confirmOrderBtn.addEventListener('click', async () => {
   // Preparar dados do cliente para salvar no banco
   const clienteData = {
     nome: elements.clientName.value,
-    // REMOVIDO: telefone: elements.clientPhone.value,
     endereco: elements.clientAddress.value,
     whatsappId: whatsappId,
     pagamento: elements.paymentMethod.value,
@@ -882,9 +1089,52 @@ elements.newOrderBtn.addEventListener('click', () => {
   fecharModal(elements.confirmationModal);
 });
 
+// Controles do seletor de categorias
+if (elements.categoryLanchesBtn) {
+  elements.categoryLanchesBtn.addEventListener('click', () => {
+    console.log('Botão de lanches clicado');
+    mudarCategoria('lanches');
+  });
+} else {
+  console.error('Botão de lanches não encontrado');
+}
+
+if (elements.categoryBebidasBtn) {
+  elements.categoryBebidasBtn.addEventListener('click', () => {
+    console.log('Botão de bebidas clicado');
+    mudarCategoria('bebidas');
+  });
+} else {
+  console.error('Botão de bebidas não encontrado');
+}
+
+if (elements.categoryPorcoesBtn) {
+  elements.categoryPorcoesBtn.addEventListener('click', () => {
+    console.log('Botão de porções clicado');
+    mudarCategoria('porcoes');
+  });
+} else {
+  console.error('Botão de porções não encontrado');
+}
+
 // Controles do carrossel
-elements.prevProductBtn.addEventListener('click', produtoAnterior);
-elements.nextProductBtn.addEventListener('click', proximoProduto);
+if (elements.prevProductBtn) {
+  elements.prevProductBtn.addEventListener('click', () => {
+    console.log('Botão anterior clicado');
+    produtoAnterior();
+  });
+} else {
+  console.error('Botão anterior não encontrado');
+}
+
+if (elements.nextProductBtn) {
+  elements.nextProductBtn.addEventListener('click', () => {
+    console.log('Botão próximo clicado');
+    proximoProduto();
+  });
+} else {
+  console.error('Botão próximo não encontrado');
+}
 
 // Controles do modal de quantidade
 elements.decreaseQuantityBtn.addEventListener('click', () => {
@@ -905,14 +1155,17 @@ elements.addToCartConfirmBtn.addEventListener('click', () => {
 
 // Controles do seletor de categorias
 elements.categoryLanchesBtn.addEventListener('click', () => {
+  console.log('Botão de lanches clicado');
   mudarCategoria('lanches');
 });
 
 elements.categoryBebidasBtn.addEventListener('click', () => {
+  console.log('Botão de bebidas clicado');
   mudarCategoria('bebidas');
 });
 
 elements.categoryPorcoesBtn.addEventListener('click', () => {
+  console.log('Botão de porções clicado');
   mudarCategoria('porcoes');
 });
 
@@ -935,6 +1188,26 @@ document.querySelectorAll('.modal').forEach(modal => {
 
 // Inicializar a aplicação
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('DOM completamente carregado');
+  
+  // Verificar se os elementos principais existem
+  if (!elements.currentProduct) {
+    console.error('Elemento currentProduct não encontrado');
+    return;
+  }
+  
+  if (!elements.carouselDots) {
+    console.error('Elemento carouselDots não encontrado');
+    return;
+  }
+  
+  if (!elements.prevProductBtn || !elements.nextProductBtn) {
+    console.error('Botões do carrossel não encontrados');
+    return;
+  }
+  
+  console.log('Todos os elementos principais encontrados');
+  
   // Obter WhatsApp ID da sessionStorage ou da URL
   whatsappId = sessionStorage.getItem('whatsappId');
   
@@ -953,6 +1226,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.history.replaceState({}, document.title, url);
     }
   }
+  
+  console.log('WhatsApp ID:', whatsappId);
   
   await carregarProdutos();
   
@@ -999,39 +1274,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
   
-  // Prevenir o comportamento padrão do touchstart no botão de adicionar ao carrinho
-  elements.currentProduct.addEventListener('touchstart', (e) => {
-    if (e.target.classList.contains('add-to-cart')) {
-      e.stopPropagation();
-    }
-  });
-  
-  // Adicionar evento touchmove para o botão de adicionar ao carrinho
-  elements.currentProduct.addEventListener('touchmove', (e) => {
-    if (e.target.classList.contains('add-to-cart')) {
-      e.stopPropagation();
-      return;
-    }
-  }, { passive: true });
-  
-  // Adicionar evento touchcancel para o botão de adicionar ao carrinho
-  elements.currentProduct.addEventListener('touchcancel', (e) => {
-    if (e.target.classList.contains('add-to-cart')) {
-      return;
-    }
-  });
+  // Adicionar eventos de toque para o carrossel (swipe) - FUNCIONALIDADE TEMPORARIAMENTE DESABILITADA
+  adicionarEventosSwipe();
   
   // Adicionar navegação por botões como alternativa
-  elements.prevProductBtn.addEventListener('click', produtoAnterior);
-  elements.nextProductBtn.addEventListener('click', proximoProduto);
+  if (elements.prevProductBtn && elements.nextProductBtn) {
+    elements.prevProductBtn.addEventListener('click', produtoAnterior);
+    elements.nextProductBtn.addEventListener('click', proximoProduto);
+  } else {
+    console.error('Não foi possível adicionar event listeners aos botões do carrossel');
+  }
+  
+  console.log('Aplicação inicializada com sucesso');
 });
 
-// Adicionar eventos de toque para o carrossel (swipe) - FUNCIONALIDADE TEMPORARIAMENTE DESABILITADA
+// Adicionar eventos swipe para o carrossel - FUNCIONALIDADE TEMPORARIAMENTE DESABILITADA
 function adicionarEventosSwipe() {
   const carouselElement = elements.currentProduct;
   const bodyElement = document.body;
   
-  console.log('Swipe functionality temporarily disabled for testing');
+  console.log('Adicionando eventos de swipe');
+  console.log('Carousel element:', carouselElement);
+  console.log('Body element:', bodyElement);
   
   // Eventos para swipe para cima (abrir carrinho) - MANTIDO
   if (bodyElement) {
@@ -1039,16 +1303,20 @@ function adicionarEventosSwipe() {
     bodyElement.addEventListener('touchmove', handleTouchMoveCart, false);
     bodyElement.addEventListener('touchend', handleTouchEndCart, false);
     bodyElement.addEventListener('touchcancel', handleTouchEndCart, false);
+    console.log('Eventos de swipe para carrinho adicionados');
   }
   
   // Prevenir seleção de texto durante o swipe
-  carouselElement.addEventListener('selectstart', (e) => {
-    // Permitir seleção de texto em inputs e textareas
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-      return true;
-    }
-    e.preventDefault();
-  }, false);
+  if (carouselElement) {
+    carouselElement.addEventListener('selectstart', (e) => {
+      // Permitir seleção de texto em inputs e textareas
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return true;
+      }
+      e.preventDefault();
+    }, false);
+    console.log('Evento de prevenção de seleção adicionado');
+  }
 }
 
 // Variáveis para pointer events (REMOVIDO TEMPORARIAMENTE)
@@ -1092,7 +1360,6 @@ function handleTouchEnd(e) {
   return;
 }
 
-// Funções para mouse - REMOVIDO TEMPORARIAMENTE
 function handleMouseDown(e) {
   // Funcionalidade de swipe temporariamente desativada
   console.log('Swipe functionality temporarily disabled');
@@ -1131,40 +1398,43 @@ let touchStartY = 0;
 let touchEndY = 0;
 
 function handleTouchStartCart(e) {
+  console.log('Touch start no carrinho');
   // Verificar se é um evento de toque
   if (e.touches && e.touches.length > 0) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
+    console.log('Touch start coordinates:', touchStartX, touchStartY);
   }
 }
 
 function handleTouchMoveCart(e) {
+  console.log('Touch move no carrinho');
   if (!touchStartX) return;
   
   // Verificar se é um evento de toque
   if (e.touches && e.touches.length > 0) {
     touchEndX = e.touches[0].clientX;
     touchEndY = e.touches[0].clientY;
+    console.log('Touch move coordinates:', touchEndX, touchEndY);
   }
 }
 
 function handleTouchEndCart(e) {
+  console.log('Touch end no carrinho');
   // Processar apenas swipe para cima (abrir carrinho)
   if (touchStartY && touchEndY) {
     const diffY = touchStartY - touchEndY;
     const diffX = Math.abs(touchStartX - touchEndX);
     
+    console.log('Diferença Y:', diffY);
+    console.log('Diferença X:', diffX);
+    
     // Verificar se é um swipe para cima significativo
     // e se o movimento horizontal não é maior que o vertical
     if (diffY > 50 && diffX < 100) {
+      console.log('Swipe para cima detectado - abrindo carrinho');
       // Abrir o carrinho
       mostrarModal(elements.cartModal);
-      
-      // Esconder o indicador de swipe após o primeiro uso
-      const swipeIndicator = document.querySelector('.swipe-up-indicator');
-      if (swipeIndicator) {
-        swipeIndicator.style.display = 'none';
-      }
     }
   }
   
@@ -1173,19 +1443,10 @@ function handleTouchEndCart(e) {
   touchEndX = 0;
   touchStartY = 0;
   touchEndY = 0;
+  console.log('Valores de touch resetados');
 }
 
-// Função para processar o gesto de swipe para cima
-function handleSwipeUpGesture() {
-  // Abrir o carrinho
-  mostrarModal(elements.cartModal);
-  
-  // Esconder o indicador de swipe após o primeiro uso
-  const swipeIndicator = document.querySelector('.swipe-up-indicator');
-  if (swipeIndicator) {
-    swipeIndicator.style.display = 'none';
-  }
-}
+// Função para processar o gesto de swipe para cima (removida)
 
 // Função para usar a localização do usuário
 function usarLocalizacao() {
@@ -1218,6 +1479,228 @@ function usarLocalizacao() {
     if (elements.deliveryError) {
       elements.deliveryError.textContent = 'Geolocalização não é suportada pelo seu navegador.';
       elements.deliveryError.style.display = 'block';
+    }
+  }
+}
+
+// Nova função para converter endereço em coordenadas e calcular entrega
+async function converterEnderecoECalcularEntrega() {
+  const endereco = elements.clientAddress.value.trim();
+  
+  console.log('Calculando taxa para o endereço:', endereco);
+  console.log('Tipo do endereço:', typeof endereco);
+  console.log('Comprimento do endereço:', endereco.length);
+  
+  // Verificar se há caracteres especiais
+  for (let i = 0; i < endereco.length; i++) {
+    const char = endereco.charCodeAt(i);
+    console.log(`Caractere ${i}: '${endereco[i]}' (código: ${char})`);
+    if (char < 32 || char > 126) {
+      console.warn(`Caractere especial encontrado na posição ${i}: código ${char}`);
+    }
+  }
+  
+  if (!endereco) {
+    if (elements.deliveryError) {
+      elements.deliveryError.textContent = 'Por favor, informe seu endereço para calcular o valor da entrega.';
+      elements.deliveryError.style.display = 'block';
+      elements.deliveryInfo.style.display = 'none';
+    }
+    
+    // Esconder o botão de calcular taxa
+    const calcularTaxaBtn = document.getElementById('calcular-taxa-btn');
+    if (calcularTaxaBtn) {
+      calcularTaxaBtn.style.display = 'none';
+    }
+    
+    return;
+  }
+  
+  // Mostrar mensagem de carregamento
+  if (elements.deliveryError) {
+    elements.deliveryError.textContent = 'Convertendo endereço e calculando entrega...';
+    elements.deliveryError.style.display = 'block';
+    elements.deliveryInfo.style.display = 'none';
+  }
+  
+  try {
+    // Converter endereço em coordenadas
+    console.log('Enviando requisição para calcular taxa de entrega');
+    console.log('Endereço a ser enviado:', endereco);
+    
+    // Verificar se o endereço é uma string válida
+    if (typeof endereco !== 'string' || endereco.length === 0) {
+      console.error('Endereço inválido:', endereco);
+      throw new Error('Endereço inválido');
+    }
+    
+    // Verificar se o JSON é válido
+    const requestBody = JSON.stringify({ endereco });
+    console.log('JSON a ser enviado:', requestBody);
+    
+    // Tentar parsear o JSON para verificar se é válido
+    try {
+      const parsed = JSON.parse(requestBody);
+      console.log('JSON parseado com sucesso:', parsed);
+    } catch (parseError) {
+      console.error('Erro ao parsear JSON:', parseError);
+      throw new Error('JSON inválido');
+    }
+    
+    // Verificar se há caracteres de controle ou inválidos
+    for (let i = 0; i < requestBody.length; i++) {
+      const charCode = requestBody.charCodeAt(i);
+      if (charCode < 32 && charCode !== 9 && charCode !== 10 && charCode !== 13) { // Permitir tab, newline e carriage return
+        console.error(`Caractere de controle inválido encontrado na posição ${i}: código ${charCode}`);
+        throw new Error('JSON contém caracteres de controle inválidos');
+      }
+    }
+    
+    // Verificar se há aspas duplas não escapadas
+    const aspasDuplas = (requestBody.match(/"/g) || []).length;
+    const aspasEscapadas = (requestBody.match(/\"/g) || []).length;
+    console.log(`Aspas duplas: ${aspasDuplas}, Aspas escapadas: ${aspasEscapadas}`);
+    
+    if (aspasDuplas - aspasEscapadas * 2 !== 2) {
+      console.warn('Possível problema com aspas no JSON');
+    }
+    
+    // Verificar se há caracteres Unicode problemáticos
+    try {
+      const encoder = new TextEncoder();
+      const encoded = encoder.encode(requestBody);
+      console.log('Bytes do JSON:', Array.from(encoded));
+    } catch (encodeError) {
+      console.error('Erro ao codificar JSON:', encodeError);
+    }
+    
+    // Verificar se há problemas com a codificação do endereço
+    try {
+      const decodedEndereco = decodeURIComponent(encodeURIComponent(endereco));
+      console.log('Endereço decodificado:', decodedEndereco);
+    } catch (decodeError) {
+      console.error('Erro ao decodificar endereço:', decodeError);
+      // Tentar limpar caracteres problemáticos
+      const enderecoLimpo = endereco.replace(/[^\x20-\x7E]/g, '');
+      console.log('Endereço limpo:', enderecoLimpo);
+      if (enderecoLimpo !== endereco) {
+        console.warn('Endereço original continha caracteres inválidos');
+        // Usar o endereço limpo
+        endereco = enderecoLimpo;
+      }
+    }
+    
+    // Verificar se há problemas com a requisição
+    console.log('Headers da requisição:', {
+      'Content-Type': 'application/json'
+    });
+    
+    // Verificar se há problemas com a requisição fetch
+    console.log('URL da requisição:', '/api/entrega/calcular-taxa');
+    console.log('Método da requisição:', 'POST');
+    
+    // Verificar se há problemas com a URL
+    const url = '/api/entrega/calcular-taxa';
+    console.log('URL completa:', url);
+    
+    // Verificar se há problemas com o fetch
+    console.log('Iniciando fetch para calcular taxa de entrega');
+    
+    // Verificar se há problemas com o response
+    console.log('Fetch concluído, verificando response');
+    
+    // Verificar se há problemas com o JSON de resposta
+    console.log('Verificando JSON de resposta');
+    
+    // Verificar se há problemas com o catch
+    console.log('Verificando catch');
+    
+    // Verificar se há problemas com o try
+    console.log('Verificando try');
+    
+    const response = await fetch('/api/entrega/calcular-taxa', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: requestBody
+    });
+    console.log('Requisição enviada, status:', response.status);
+    
+    const data = await response.json();
+    console.log('Resposta recebida:', data);
+    
+    if (data.success) {
+      // Verificar se o endereço está fora de Imbituva
+      if (data.isOutsideImbituva) {
+        // Mostrar mensagem especial para endereços fora de Imbituva
+        if (elements.deliveryError) {
+          elements.deliveryError.innerHTML = `
+            <div style="text-align: center; padding: 10px;">
+              <p><strong>⚠️ Endereço fora de Imbituva</strong></p>
+              <p>Calculamos uma taxa mínima de entrega de <strong>R$ ${data.price.toFixed(2).replace('.', ',')}</strong> para sua localização.</p>
+              <p>Endereço identificado: ${data.endereco}</p>
+              <p><small>Se tiver dificuldades com o endereço, utilize o botão "Usar minha localização" para obter sua posição exata.</small></p>
+            </div>
+          `;
+          elements.deliveryError.style.display = 'block';
+          elements.deliveryInfo.style.display = 'none';
+        }
+      } else {
+        // Mostrar informações da entrega normalmente
+        if (elements.deliveryInfo) {
+          elements.deliveryDistance.textContent = data.distance.toFixed(2);
+          elements.deliveryPrice.textContent = data.price.toFixed(2).replace('.', ',');
+          elements.deliveryInfo.style.display = 'block';
+          elements.deliveryError.style.display = 'none';
+        }
+      }
+      
+      // Atualizar informações de entrega
+      entregaInfo = {
+        distance: data.distance,
+        price: data.price,
+        coordinates: data.coordinates
+      };
+      
+      // Salvar coordenadas no elemento hidden
+      if (elements.clientCoordinates) {
+        elements.clientCoordinates.value = JSON.stringify(data.coordinates);
+      }
+      
+      // Atualizar totais com o valor da entrega
+      atualizarCarrinho();
+      
+      // Esconder o botão de calcular taxa
+      const calcularTaxaBtn = document.getElementById('calcular-taxa-btn');
+      if (calcularTaxaBtn) {
+        calcularTaxaBtn.style.display = 'none';
+      }
+    } else {
+      if (elements.deliveryError) {
+        elements.deliveryError.textContent = data.error || 'Erro ao calcular taxa de entrega.';
+        elements.deliveryError.style.display = 'block';
+        elements.deliveryInfo.style.display = 'none';
+      }
+      
+      // Manter o botão visível em caso de erro
+      const calcularTaxaBtn = document.getElementById('calcular-taxa-btn');
+      if (calcularTaxaBtn) {
+        calcularTaxaBtn.style.display = 'block';
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao calcular taxa de entrega:', error);
+    if (elements.deliveryError) {
+      elements.deliveryError.textContent = 'Erro ao processar o endereço. Por favor, tente novamente.';
+      elements.deliveryError.style.display = 'block';
+      elements.deliveryInfo.style.display = 'none';
+    }
+    
+    // Manter o botão visível em caso de erro
+    const calcularTaxaBtn = document.getElementById('calcular-taxa-btn');
+    if (calcularTaxaBtn) {
+      calcularTaxaBtn.style.display = 'block';
     }
   }
 }
@@ -1311,15 +1794,74 @@ function tratarErroLocalizacao(error) {
 
 // Atualizar estado dos botões do carrossel
 function atualizarEstadoBotoes() {
+  console.log('Iniciando atualização do estado dos botões do carrossel...');
   const produtosDaCategoria = produtosPorCategoria[categoriaAtual];
   
-  if (produtosDaCategoria.length <= 1) {
+  console.log('Produtos da categoria atual:', produtosDaCategoria);
+  console.log('Número de produtos:', produtosDaCategoria ? produtosDaCategoria.length : 'undefined');
+  
+  if (!elements.prevProductBtn || !elements.nextProductBtn) {
+    console.error('Botões do carrossel não encontrados');
+    return;
+  }
+  
+  if (!produtosDaCategoria || produtosDaCategoria.length <= 1) {
     // Se houver 0 ou 1 produto, desativar ambos os botões
-    if (elements.prevProductBtn) elements.prevProductBtn.disabled = true;
-    if (elements.nextProductBtn) elements.nextProductBtn.disabled = true;
+    console.log('Desativando botões - 0 ou 1 produto');
+    elements.prevProductBtn.disabled = true;
+    elements.nextProductBtn.disabled = true;
+    console.log('Botão anterior desativado:', elements.prevProductBtn.disabled);
+    console.log('Botão próximo desativado:', elements.nextProductBtn.disabled);
   } else {
     // Ativar ambos os botões
-    if (elements.prevProductBtn) elements.prevProductBtn.disabled = false;
-    if (elements.nextProductBtn) elements.nextProductBtn.disabled = false;
+    console.log('Ativando botões - mais de 1 produto');
+    elements.prevProductBtn.disabled = false;
+    elements.nextProductBtn.disabled = false;
+    console.log('Botão anterior ativado:', !elements.prevProductBtn.disabled);
+    console.log('Botão próximo ativado:', !elements.nextProductBtn.disabled);
   }
 }
+
+// Adicionar evento para calcular entrega quando o endereço for digitado
+document.addEventListener('DOMContentLoaded', function() {
+  // Adicionar evento para o botão de usar localização
+  if (elements.useLocationBtn) {
+    elements.useLocationBtn.addEventListener('click', usarLocalizacao);
+  }
+  
+  // Adicionar evento para calcular entrega quando o endereço for digitado
+  if (elements.clientAddress) {
+    // Mostrar botão de calcular taxa quando o campo de endereço recebe foco
+    elements.clientAddress.addEventListener('focus', function() {
+      const calcularTaxaBtn = document.getElementById('calcular-taxa-btn');
+      if (calcularTaxaBtn) {
+        calcularTaxaBtn.style.display = 'block';
+      }
+    });
+    
+    // Mostrar botão de calcular taxa quando o usuário digita algo no campo de endereço
+    elements.clientAddress.addEventListener('input', function() {
+      const calcularTaxaBtn = document.getElementById('calcular-taxa-btn');
+      if (calcularTaxaBtn && elements.clientAddress.value.trim().length > 0) {
+        calcularTaxaBtn.style.display = 'flex';
+      }
+    });
+  }
+  
+  // Adicionar evento para o botão de calcular taxa
+  const calcularTaxaBtn = document.getElementById('calcular-taxa-btn');
+  if (calcularTaxaBtn) {
+    calcularTaxaBtn.addEventListener('click', function() {
+      converterEnderecoECalcularEntrega();
+    });
+  }
+  
+  // Adicionar evento para o botão de usar endereço anterior
+  if (elements.usePreviousAddress) {
+    elements.usePreviousAddress.addEventListener('change', () => {
+      if (elements.usePreviousAddress.checked && clienteInfo && clienteInfo.endereco) {
+        elements.clientAddress.value = clienteInfo.endereco;
+      }
+    });
+  }
+});

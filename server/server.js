@@ -92,6 +92,11 @@ app.get('/custom', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/custom.html'));
 });
 
+// Rota para página de detalhes do pedido
+app.get('/pedido/:id', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/pedido-detalhe.html'));
+});
+
 // Endpoint para pegar produtos
 app.get('/api/produtos', async (req, res) => {
   try {
@@ -114,12 +119,6 @@ app.post('/api/entrega/calcular', async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
     
-    if (!latitude || !longitude) {
-      return res.status(400).json({ 
-        error: 'Coordenadas não fornecidas' 
-      });
-    }
-    
     const result = await deliveryService.processDelivery({
       lat: parseFloat(latitude),
       lng: parseFloat(longitude)
@@ -130,6 +129,74 @@ app.post('/api/entrega/calcular', async (req, res) => {
     console.error('Erro ao calcular entrega:', error);
     res.status(500).json({ 
       error: 'Erro ao calcular valor da entrega' 
+    });
+  }
+});
+
+// Novo endpoint para converter endereço em coordenadas
+app.post('/api/entrega/endereco-coordenadas', async (req, res) => {
+  try {
+    const { endereco } = req.body;
+    
+    if (!endereco) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Endereço não informado' 
+      });
+    }
+    
+    const coordinates = await deliveryService.converterEnderecoEmCoordenadas(endereco);
+    
+    if (!coordinates) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Não foi possível encontrar as coordenadas para o endereço informado. Por favor, verifique se o endereço está correto.' 
+      });
+    }
+    
+    // Verificar se está em Imbituva
+    const cidadeValida = await deliveryService.verificarSeEstaEmImbituva(coordinates.lat, coordinates.lng);
+    
+    if (!cidadeValida) {
+      return res.status(400).json({ 
+        success: false,
+        error: "❌ *Atendemos apenas em Imbituva!*\n\nSua localização não está em Imbituva, PR. Por favor, digite um endereço em Imbituva ou verifique se sua localização está correta.\n\n_Exemplo: Rua das Flores, 123, Centro, Imbituva_" 
+      });
+    }
+    
+    res.json({ 
+      success: true,
+      coordinates: coordinates
+    });
+  } catch (error) {
+    console.error('Erro ao converter endereço em coordenadas:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Erro ao processar o endereço. Por favor, tente novamente.' 
+    });
+  }
+});
+
+// Novo endpoint para calcular taxa de entrega com base no endereço
+app.post('/api/entrega/calcular-taxa', async (req, res) => {
+  try {
+    const { endereco } = req.body;
+    
+    if (!endereco) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Endereço não informado' 
+      });
+    }
+    
+    const result = await deliveryService.calcularTaxaPorEndereco(endereco);
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Erro ao calcular taxa de entrega:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Erro ao calcular taxa de entrega. Por favor, tente novamente.' 
     });
   }
 });
@@ -235,6 +302,44 @@ app.get('/api/pedidos', async (req, res) => {
   } catch (error) {
     console.error('Erro ao buscar pedidos:', error);
     res.status(500).json({ error: 'Erro ao buscar pedidos' });
+  }
+});
+
+// Endpoint para buscar um pedido específico pelo ID
+app.get('/api/pedidos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Buscar pedido com informações do cliente
+    const pedido = await db.get(`
+      SELECT p.*, 
+             c.nome as cliente_nome,
+             c.telefone as cliente_telefone,
+             c.endereco as cliente_endereco
+      FROM pedidos p
+      LEFT JOIN clientes c ON p.cliente_nome = c.nome
+      WHERE p.id = ?
+    `, [id]);
+    
+    if (!pedido) {
+      return res.status(404).json({ error: 'Pedido não encontrado' });
+    }
+    
+    // Buscar itens do pedido
+    pedido.itens = await db.all(`
+      SELECT pi.*, pr.nome as produto_nome
+      FROM pedido_itens pi
+      LEFT JOIN produtos pr ON pi.produto_id = pr.id
+      WHERE pi.pedido_id = ?
+    `, [id]);
+    
+    // Adicionar status (por padrão, 'pending' para pedidos novos)
+    pedido.status = pedido.status || 'pending';
+    
+    res.json(pedido);
+  } catch (error) {
+    console.error('Erro ao buscar pedido:', error);
+    res.status(500).json({ error: 'Erro ao buscar pedido' });
   }
 });
 
