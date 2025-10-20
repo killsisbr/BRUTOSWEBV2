@@ -204,15 +204,22 @@ body {
   padding: 10px;
   width: 100%;
   height: 100%;
-  cursor: grab;
+  cursor: default;
   user-select: none;
   transition: transform 0.2s ease;
-  touch-action: pan-x; /* Permite swipe horizontal para o carrossel */
+  touch-action: auto; /* Restaurar o comportamento padrão de toque */
+  /* Garantir que o container não interfira com eventos de toque nos botões */
+  pointer-events: none;
+}
+
+.current-product > * {
+  /* Reativar eventos de ponteiro para os elementos filhos */
+  pointer-events: auto;
 }
 
 .current-product:active {
-  cursor: grabbing;
-  transform: scale(0.98);
+  cursor: default;
+  transform: none;
 }
 
 .product-card {
@@ -221,7 +228,7 @@ body {
   border-radius: var(--border-radius);
   overflow: hidden;
   text-align: center;
-  transition: transform 0.3s ease;
+  transition: none;
   margin: 0;
   height: 100%;
   display: flex;
@@ -232,12 +239,21 @@ body {
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  cursor: grab;
+  cursor: default;
+  /* Alteração importante: permitir cliques nos botões dentro do card */
+  touch-action: auto; /* Restaurar o comportamento padrão de toque */
+  /* Adicionar propriedades para melhor experiência de toque */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  /* Garantir que o card não interfira com eventos de toque nos botões */
+  pointer-events: auto;
 }
 
 .product-card:active {
-  cursor: grabbing;
-  transform: scale(0.98);
+  cursor: default;
+  transform: none;
 }
 
 .product-image-container {
@@ -307,10 +323,37 @@ body {
   transition: background 0.3s;
   width: 100%;
   flex-shrink: 0;
+  /* Propriedades importantes para touch */
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  /* Adicionar propriedades para melhor experiência de toque */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  /* Adicionar transições suaves */
+  transition: all 0.2s ease;
+  /* Garantir que o botão esteja sempre acima de outros elementos */
+  z-index: 10;
+  position: relative;
+  /* REMOVIDO TEMPORARIAMENTE: transformações que podem interferir com o clique */
+  transform: none !important;
 }
 
 .add-to-cart:hover {
   background: var(--primary-dark);
+}
+
+.add-to-cart:active {
+  /* REMOVIDO TEMPORARIAMENTE: transform: scale(0.98); */
+  background: var(--primary-dark);
+  transform: none;
+}
+
+.add-to-cart:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 .carousel-indicators {
@@ -1738,7 +1781,6 @@ body {
   .admin-product-actions {
     flex-direction: column;
   }
-  
   .edit-image-btn, .delete-product-btn {
     width: 100%;
     margin: 5px 0;

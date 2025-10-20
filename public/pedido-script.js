@@ -18,14 +18,7 @@ let whatsappId = null;
 let clienteInfo = null;
 let entregaInfo = null; // Informações de entrega
 
-// Variáveis para o sistema de swipe
-let touchStartX = 0;
-let touchEndX = 0;
-let touchStartY = 0;
-let touchEndY = 0;
-// Variáveis para o gesto de swipe para cima (abrir carrinho)
-let touchStartYCart = 0;
-let touchEndYCart = 0;
+
 
 // Elementos do DOM
 const elements = {
@@ -975,7 +968,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Delegação de eventos para o botão "Adicionar ao Carrinho"
   elements.currentProduct.addEventListener('click', (e) => {
+    // Verificar se o clique foi no botão "Adicionar ao Carrinho"
     if (e.target.classList.contains('add-to-cart')) {
+      e.preventDefault();
+      e.stopPropagation();
       const produtoId = parseInt(e.target.dataset.id);
       produtoSelecionado = produtos.find(p => p.id === produtoId);
       if (produtoSelecionado) {
@@ -984,302 +980,210 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
   
-  // Adicionar eventos de toque para o carrossel (swipe)
-  adicionarEventosSwipe();
+  // Também adicionar delegação para eventos de toque
+  elements.currentProduct.addEventListener('touchend', (e) => {
+    // Verificar se o toque foi no botão "Adicionar ao Carrinho"
+    if (e.target.classList.contains('add-to-cart')) {
+      // Prevenir o comportamento padrão para evitar conflitos
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Tratar como clique direto
+      const produtoId = parseInt(e.target.dataset.id);
+      produtoSelecionado = produtos.find(p => p.id === produtoId);
+      if (produtoSelecionado) {
+        mostrarModalQuantidade(produtoSelecionado);
+      }
+      
+      return;
+    }
+  });
+  
+  // Prevenir o comportamento padrão do touchstart no botão de adicionar ao carrinho
+  elements.currentProduct.addEventListener('touchstart', (e) => {
+    if (e.target.classList.contains('add-to-cart')) {
+      e.stopPropagation();
+    }
+  });
+  
+  // Adicionar evento touchmove para o botão de adicionar ao carrinho
+  elements.currentProduct.addEventListener('touchmove', (e) => {
+    if (e.target.classList.contains('add-to-cart')) {
+      e.stopPropagation();
+      return;
+    }
+  }, { passive: true });
+  
+  // Adicionar evento touchcancel para o botão de adicionar ao carrinho
+  elements.currentProduct.addEventListener('touchcancel', (e) => {
+    if (e.target.classList.contains('add-to-cart')) {
+      return;
+    }
+  });
+  
+  // Adicionar navegação por botões como alternativa
+  elements.prevProductBtn.addEventListener('click', produtoAnterior);
+  elements.nextProductBtn.addEventListener('click', proximoProduto);
 });
 
-// Adicionar eventos de toque para o carrossel (swipe)
+// Adicionar eventos de toque para o carrossel (swipe) - FUNCIONALIDADE TEMPORARIAMENTE DESABILITADA
 function adicionarEventosSwipe() {
   const carouselElement = elements.currentProduct;
   const bodyElement = document.body;
   
-  console.log('Adding swipe events to carousel element:', carouselElement);
+  console.log('Swipe functionality temporarily disabled for testing');
   
-  // Verificar se o elemento existe antes de adicionar eventos
-  if (!carouselElement) {
-    console.error('Carousel element not found');
-    return;
-  }
-  
-  // Eventos para touch (dispositivos móveis)
-  carouselElement.addEventListener('touchstart', handleTouchStart, { passive: false });
-  carouselElement.addEventListener('touchmove', handleTouchMove, { passive: false });
-  carouselElement.addEventListener('touchend', handleTouchEnd, { passive: false });
-  
-  // Eventos para mouse (desktop)
-  carouselElement.addEventListener('mousedown', handleMouseDown, false);
-  carouselElement.addEventListener('mousemove', handleMouseMove, false);
-  carouselElement.addEventListener('mouseup', handleMouseUp, false);
-  carouselElement.addEventListener('mouseleave', handleMouseLeave, false);
-  
-  // Eventos para pointer (melhor suporte cross-platform)
-  carouselElement.addEventListener('pointerdown', handlePointerDown, false);
-  carouselElement.addEventListener('pointermove', handlePointerMove, false);
-  carouselElement.addEventListener('pointerup', handlePointerUp, false);
-  carouselElement.addEventListener('pointercancel', handlePointerUp, false);
-  
-  console.log('Swipe events added successfully');
-  
-  // Eventos para swipe para cima (abrir carrinho)
+  // Eventos para swipe para cima (abrir carrinho) - MANTIDO
   if (bodyElement) {
     bodyElement.addEventListener('touchstart', handleTouchStartCart, false);
     bodyElement.addEventListener('touchmove', handleTouchMoveCart, false);
     bodyElement.addEventListener('touchend', handleTouchEndCart, false);
+    bodyElement.addEventListener('touchcancel', handleTouchEndCart, false);
   }
   
   // Prevenir seleção de texto durante o swipe
-  carouselElement.addEventListener('selectstart', (e) => e.preventDefault(), false);
+  carouselElement.addEventListener('selectstart', (e) => {
+    // Permitir seleção de texto em inputs e textareas
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      return true;
+    }
+    e.preventDefault();
+  }, false);
 }
 
-// Variáveis para pointer events
+// Variáveis para pointer events (REMOVIDO TEMPORARIAMENTE)
 let isPointerDown = false;
+let pointerStartX = 0;
+let pointerStartY = 0;
+let isSwipeDetected = false;
 
-// Funções para pointer events (melhor suporte cross-platform)
+// Funções para pointer events (melhor suporte cross-platform) - REMOVIDO TEMPORARIAMENTE
 function handlePointerDown(e) {
-  if (e.pointerType === 'touch') {
-    isPointerDown = true;
-    handleTouchStart(e);
-  } else if (e.pointerType === 'mouse') {
-    handleMouseDown(e);
-  }
+  // Funcionalidade de swipe temporariamente desativada
+  return;
 }
 
 function handlePointerMove(e) {
-  if (!isPointerDown) return;
-  
-  if (e.pointerType === 'touch') {
-    handleTouchMove(e);
-  } else if (e.pointerType === 'mouse') {
-    handleMouseMove(e);
-  }
+  // Funcionalidade de swipe temporariamente desativada
+  return;
 }
 
 function handlePointerUp(e) {
-  if (e.pointerType === 'touch') {
-    isPointerDown = false;
-    handleTouchEnd(); // Não passar o evento para handleTouchEnd
-  } else if (e.pointerType === 'mouse') {
-    handleMouseUp(e);
-  }
+  // Funcionalidade de swipe temporariamente desativada
+  return;
 }
 
-// Funções para touch
+// Funções para touch - REMOVIDO TEMPORARIAMENTE
 function handleTouchStart(e) {
-  console.log('Touch start triggered', e);
-  // Prevenir o comportamento padrão do navegador para melhor experiência de swipe
-  e.preventDefault();
-  
+  // Funcionalidade de swipe temporariamente desativada
+  console.log('Swipe functionality temporarily disabled');
+  return;
+}
+
+function handleTouchMove(e) {
+  // Funcionalidade de swipe temporariamente desativada
+  console.log('Swipe functionality temporarily disabled');
+  return;
+}
+
+function handleTouchEnd(e) {
+  // Funcionalidade de swipe temporariamente desativada
+  console.log('Swipe functionality temporarily disabled');
+  return;
+}
+
+// Funções para mouse - REMOVIDO TEMPORARIAMENTE
+function handleMouseDown(e) {
+  // Funcionalidade de swipe temporariamente desativada
+  console.log('Swipe functionality temporarily disabled');
+  return;
+}
+
+function handleMouseMove(e) {
+  // Funcionalidade de swipe temporariamente desativada
+  console.log('Swipe functionality temporarily disabled');
+  return;
+}
+
+function handleMouseUp(e) {
+  // Funcionalidade de swipe temporariamente desativada
+  console.log('Swipe functionality temporarily disabled');
+  return;
+}
+
+function handleMouseLeave() {
+  // Funcionalidade de swipe temporariamente desativada
+  console.log('Swipe functionality temporarily disabled');
+  return;
+}
+
+// Função para processar o gesto de swipe - REMOVIDO TEMPORARIAMENTE
+function handleSwipeGesture() {
+  // Funcionalidade de swipe temporariamente desativada
+  console.log('Swipe functionality temporarily disabled');
+  return;
+}
+
+// Funções para touch do carrinho (swipe para cima) - MANTIDO PARA FUNCIONALIDADE DE ABRIR CARRINHO
+let touchStartX = 0;
+let touchEndX = 0;
+let touchStartY = 0;
+let touchEndY = 0;
+
+function handleTouchStartCart(e) {
   // Verificar se é um evento de toque
   if (e.touches && e.touches.length > 0) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
-    console.log('Touch start coordinates:', touchStartX, touchStartY);
-  } else if (e.clientX !== undefined && e.clientY !== undefined) {
-    // Caso contrário, é um evento de mouse/pointer
-    touchStartX = e.clientX;
-    touchStartY = e.clientY;
-    console.log('Mouse/Pointer start coordinates:', touchStartX, touchStartY);
   }
 }
 
-function handleTouchMove(e) {
-  console.log('Touch move triggered', e);
+function handleTouchMoveCart(e) {
   if (!touchStartX) return;
   
   // Verificar se é um evento de toque
   if (e.touches && e.touches.length > 0) {
     touchEndX = e.touches[0].clientX;
     touchEndY = e.touches[0].clientY;
-  } else if (e.clientX !== undefined && e.clientY !== undefined) {
-    // Caso contrário, é um evento de mouse/pointer
-    touchEndX = e.clientX;
-    touchEndY = e.clientY;
-  } else {
-    return; // Não temos coordenadas válidas
-  }
-  
-  console.log('Touch move coordinates:', touchEndX, touchEndY);
-  
-  // Adicionar efeito visual durante o movimento
-  if (touchStartX && touchEndX && elements.currentProduct) {
-    const diffX = touchStartX - touchEndX;
-    const productCard = elements.currentProduct.querySelector('.product-card');
-    if (productCard) {
-      // Aumentar a sensibilidade do movimento visual
-      productCard.style.transform = `translateX(${-diffX * 0.1}%)`;
-      // Adicionar transição suave
-      productCard.style.transition = 'transform 0.1s ease-out';
-    }
   }
 }
 
-function handleTouchEnd(e) {
-  console.log('Touch end triggered', e);
-  handleSwipeGesture();
-  // Resetar transformação
-  if (elements.currentProduct) {
-    const productCard = elements.currentProduct.querySelector('.product-card');
-    if (productCard) {
-      productCard.style.transform = '';
-      productCard.style.transition = '';
-    }
-  }
-  // Resetar valores
-  touchStartX = 0;
-  touchEndX = 0;
-  touchStartY = 0;
-  touchEndY = 0;
-}
-
-// Funções para mouse
-function handleMouseDown(e) {
-  touchStartX = e.clientX;
-  touchStartY = e.clientY;
-  if (elements.currentProduct) {
-    elements.currentProduct.style.cursor = 'grabbing';
-    const productCard = elements.currentProduct.querySelector('.product-card');
-    if (productCard) {
-      productCard.style.cursor = 'grabbing';
-    }
-  }
-}
-
-function handleMouseMove(e) {
-  if (!touchStartX) return;
-  
-  touchEndX = e.clientX;
-  touchEndY = e.clientY;
-  
-  // Adicionar efeito visual durante o movimento
-  if (touchStartX && touchEndX && elements.currentProduct) {
-    const diffX = touchStartX - touchEndX;
-    const productCard = elements.currentProduct.querySelector('.product-card');
-    if (productCard) {
-      productCard.style.transform = `translateX(${-diffX * 0.05}%)`;
-    }
-  }
-}
-
-function handleMouseUp() {
-  handleSwipeGesture();
-  if (elements.currentProduct) {
-    elements.currentProduct.style.cursor = 'grab';
-    const productCard = elements.currentProduct.querySelector('.product-card');
-    if (productCard) {
-      productCard.style.cursor = 'grab';
-      productCard.style.transform = '';
-    }
-  }
-  // Resetar valores
-  touchStartX = 0;
-  touchEndX = 0;
-  touchStartY = 0;
-  touchEndY = 0;
-}
-
-function handleMouseLeave() {
-  // Resetar valores se o mouse sair da área
-  touchStartX = 0;
-  touchEndX = 0;
-  touchStartY = 0;
-  touchEndY = 0;
-  if (elements.currentProduct) {
-    elements.currentProduct.style.cursor = 'default';
-    const productCard = elements.currentProduct.querySelector('.product-card');
-    if (productCard) {
-      productCard.style.cursor = 'default';
-      productCard.style.transform = '';
-    }
-  }
-}
-
-// Função para processar o gesto de swipe
-function handleSwipeGesture() {
-  console.log('Processing swipe gesture');
-  console.log('Start X:', touchStartX, 'End X:', touchEndX);
-  console.log('Start Y:', touchStartY, 'End Y:', touchEndY);
-  
-  if (!touchStartX || !touchEndX) return;
-  
-  const diffX = touchStartX - touchEndX;
-  const diffY = touchStartY - touchEndY;
-  const minSwipeDistance = 30; // Distância mínima reduzida para melhor sensibilidade em mobile
-  
-  console.log('Diff X:', diffX, 'Diff Y:', diffY);
-  
-  // Verificar se o movimento foi principalmente horizontal
-  if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffY) < 30) { // Limitar movimento vertical
-    console.log('Horizontal swipe detected');
-    // Swipe horizontal
-    if (Math.abs(diffX) > minSwipeDistance) {
-      if (diffX > 0) {
-        // Swipe para a esquerda - próximo produto
-        console.log('Swipe left - next product');
-        proximoProduto();
-      } else {
-        // Swipe para a direita - produto anterior
-        console.log('Swipe right - previous product');
-        produtoAnterior();
+function handleTouchEndCart(e) {
+  // Processar apenas swipe para cima (abrir carrinho)
+  if (touchStartY && touchEndY) {
+    const diffY = touchStartY - touchEndY;
+    const diffX = Math.abs(touchStartX - touchEndX);
+    
+    // Verificar se é um swipe para cima significativo
+    // e se o movimento horizontal não é maior que o vertical
+    if (diffY > 50 && diffX < 100) {
+      // Abrir o carrinho
+      mostrarModal(elements.cartModal);
+      
+      // Esconder o indicador de swipe após o primeiro uso
+      const swipeIndicator = document.querySelector('.swipe-up-indicator');
+      if (swipeIndicator) {
+        swipeIndicator.style.display = 'none';
       }
-      // Resetar valores após o swipe
-      touchStartX = 0;
-      touchEndX = 0;
-      touchStartY = 0;
-      touchEndY = 0;
-    } else {
-      console.log('Swipe distance too small');
-    }
-  } else {
-    console.log('Not a valid horizontal swipe');
-  }
-}
-
-// Funções para touch do carrinho (swipe para cima)
-function handleTouchStartCart(e) {
-  // Verificar se é um evento de toque
-  if (e.touches && e.touches.length > 0) {
-    // Verificar se o toque começou na parte inferior da tela
-    const touch = e.touches[0];
-    if (touch.clientY > window.innerHeight * 0.7) {
-      touchStartYCart = touch.clientY;
     }
   }
-}
-
-function handleTouchMoveCart(e) {
-  if (!touchStartYCart) return;
   
-  // Verificar se é um evento de toque
-  if (e.touches && e.touches.length > 0) {
-    const touch = e.touches[0];
-    touchEndYCart = touch.clientY;
-  }
-}
-
-function handleTouchEndCart() {
-  handleSwipeUpGesture();
   // Resetar valores
-  touchStartYCart = 0;
-  touchEndYCart = 0;
+  touchStartX = 0;
+  touchEndX = 0;
+  touchStartY = 0;
+  touchEndY = 0;
 }
 
 // Função para processar o gesto de swipe para cima
 function handleSwipeUpGesture() {
-  if (!touchStartYCart || !touchEndYCart) return;
+  // Abrir o carrinho
+  mostrarModal(elements.cartModal);
   
-  const diffY = touchStartYCart - touchEndYCart;
-  const minSwipeDistance = 80; // Distância mínima para considerar um swipe para cima
-  
-  // Verificar se o movimento foi para cima e com distância suficiente
-  if (diffY > minSwipeDistance) {
-    // Swipe para cima - abrir carrinho
-    mostrarModal(elements.cartModal);
-    
-    // Esconder o indicador de swipe após o primeiro uso
-    const swipeIndicator = document.querySelector('.swipe-up-indicator');
-    if (swipeIndicator) {
-      swipeIndicator.style.display = 'none';
-    }
+  // Esconder o indicador de swipe após o primeiro uso
+  const swipeIndicator = document.querySelector('.swipe-up-indicator');
+  if (swipeIndicator) {
+    swipeIndicator.style.display = 'none';
   }
 }
 

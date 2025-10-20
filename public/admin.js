@@ -25,7 +25,7 @@ const elements = {
   deleteProductName: document.getElementById('delete-product-name'),
   cancelDeleteBtn: document.getElementById('cancel-delete-btn'),
   confirmDeleteBtn: document.getElementById('confirm-delete-btn'),
-  // Elementos de zoom
+  // Elementos de zoom //top
   zoomInBtn: document.getElementById('zoom-in-btn'),
   zoomOutBtn: document.getElementById('zoom-out-btn'),
   resetZoomBtn: document.getElementById('reset-zoom-btn'),
