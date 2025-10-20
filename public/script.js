@@ -109,6 +109,9 @@ function atualizarCarrossel() {
     
     renderizarProdutoAtual();
     renderizarIndicadoresCarrossel();
+    
+    // Atualizar estado dos botões
+    atualizarEstadoBotoes();
   } else {
     // Se não houver produtos na categoria, mostrar mensagem
     elements.currentProduct.innerHTML = `
@@ -117,6 +120,10 @@ function atualizarCarrossel() {
       </div>
     `;
     elements.carouselDots.innerHTML = '';
+    
+    // Desativar botões quando não há produtos
+    if (elements.prevProductBtn) elements.prevProductBtn.disabled = true;
+    if (elements.nextProductBtn) elements.nextProductBtn.disabled = true;
   }
 }
 
@@ -299,6 +306,7 @@ function proximoProduto() {
   
   indiceProdutoAtual = (indiceProdutoAtual + 1) % produtosDaCategoria.length;
   renderizarProdutoAtual();
+  atualizarEstadoBotoes();
 }
 
 // Navegar para o produto anterior
@@ -309,6 +317,7 @@ function produtoAnterior() {
   
   indiceProdutoAtual = (indiceProdutoAtual - 1 + produtosDaCategoria.length) % produtosDaCategoria.length;
   renderizarProdutoAtual();
+  atualizarEstadoBotoes();
 }
 
 // Mudar categoria
@@ -713,3 +722,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Prevenir scroll na página
   document.body.style.overflow = 'hidden';
 });
+
+// Atualizar estado dos botões do carrossel
+function atualizarEstadoBotoes() {
+  const produtosDaCategoria = produtosPorCategoria[categoriaAtual];
+  
+  if (produtosDaCategoria.length <= 1) {
+    // Se houver 0 ou 1 produto, desativar ambos os botões
+    if (elements.prevProductBtn) elements.prevProductBtn.disabled = true;
+    if (elements.nextProductBtn) elements.nextProductBtn.disabled = true;
+  } else {
+    // Ativar ambos os botões
+    if (elements.prevProductBtn) elements.prevProductBtn.disabled = false;
+    if (elements.nextProductBtn) elements.nextProductBtn.disabled = false;
+  }
+}

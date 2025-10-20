@@ -207,7 +207,7 @@ body {
   cursor: grab;
   user-select: none;
   transition: transform 0.2s ease;
-  touch-action: pan-y; /* Permite scroll vertical mas não horizontal */
+  touch-action: pan-x; /* Permite swipe horizontal para o carrossel */
 }
 
 .current-product:active {
@@ -233,7 +233,6 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   cursor: grab;
-  touch-action: manipulation; /* Melhora a resposta ao toque */
 }
 
 .product-card:active {
@@ -337,6 +336,49 @@ body {
 
 .dot.active {
   background: var(--primary-color);
+}
+
+/* Botões do Carrossel */
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(39, 174, 96, 0.3);
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.3s ease;
+  color: white;
+  font-size: 1.5rem;
+}
+
+.carousel-btn:hover {
+  background: var(--primary-color);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-btn.prev {
+  left: 10px;
+}
+
+.carousel-btn.next {
+  right: 10px;
+}
+
+.carousel-btn i {
+  pointer-events: none; /* Evitar que o ícone interfira nos cliques */
+}
+
+.carousel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(100, 100, 100, 0.3);
 }
 
 /* Modal */

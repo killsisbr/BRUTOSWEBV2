@@ -135,6 +135,9 @@ function atualizarCarrossel() {
     
     renderizarProdutoAtual();
     renderizarIndicadoresCarrossel();
+    
+    // Atualizar estado dos botões
+    atualizarEstadoBotoes();
   } else {
     // Se não houver produtos na categoria, mostrar mensagem
     elements.currentProduct.innerHTML = `
@@ -143,6 +146,10 @@ function atualizarCarrossel() {
       </div>
     `;
     elements.carouselDots.innerHTML = '';
+    
+    // Desativar botões quando não há produtos
+    if (elements.prevProductBtn) elements.prevProductBtn.disabled = true;
+    if (elements.nextProductBtn) elements.nextProductBtn.disabled = true;
   }
 }
 
@@ -317,6 +324,7 @@ function proximoProduto() {
   
   indiceProdutoAtual = (indiceProdutoAtual + 1) % produtosDaCategoria.length;
   renderizarProdutoAtual();
+  atualizarEstadoBotoes();
 }
 
 // Navegar para o produto anterior
@@ -327,6 +335,7 @@ function produtoAnterior() {
   
   indiceProdutoAtual = (indiceProdutoAtual - 1 + produtosDaCategoria.length) % produtosDaCategoria.length;
   renderizarProdutoAtual();
+  atualizarEstadoBotoes();
 }
 
 // Mudar categoria
@@ -984,8 +993,13 @@ function adicionarEventosSwipe() {
   const carouselElement = elements.currentProduct;
   const bodyElement = document.body;
   
+  console.log('Adding swipe events to carousel element:', carouselElement);
+  
   // Verificar se o elemento existe antes de adicionar eventos
-  if (!carouselElement) return;
+  if (!carouselElement) {
+    console.error('Carousel element not found');
+    return;
+  }
   
   // Eventos para touch (dispositivos móveis)
   carouselElement.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -1003,6 +1017,8 @@ function adicionarEventosSwipe() {
   carouselElement.addEventListener('pointermove', handlePointerMove, false);
   carouselElement.addEventListener('pointerup', handlePointerUp, false);
   carouselElement.addEventListener('pointercancel', handlePointerUp, false);
+  
+  console.log('Swipe events added successfully');
   
   // Eventos para swipe para cima (abrir carrinho)
   if (bodyElement) {
@@ -1049,6 +1065,7 @@ function handlePointerUp(e) {
 
 // Funções para touch
 function handleTouchStart(e) {
+  console.log('Touch start triggered', e);
   // Prevenir o comportamento padrão do navegador para melhor experiência de swipe
   e.preventDefault();
   
@@ -1056,14 +1073,17 @@ function handleTouchStart(e) {
   if (e.touches && e.touches.length > 0) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
+    console.log('Touch start coordinates:', touchStartX, touchStartY);
   } else if (e.clientX !== undefined && e.clientY !== undefined) {
     // Caso contrário, é um evento de mouse/pointer
     touchStartX = e.clientX;
     touchStartY = e.clientY;
+    console.log('Mouse/Pointer start coordinates:', touchStartX, touchStartY);
   }
 }
 
 function handleTouchMove(e) {
+  console.log('Touch move triggered', e);
   if (!touchStartX) return;
   
   // Verificar se é um evento de toque
@@ -1077,6 +1097,8 @@ function handleTouchMove(e) {
   } else {
     return; // Não temos coordenadas válidas
   }
+  
+  console.log('Touch move coordinates:', touchEndX, touchEndY);
   
   // Adicionar efeito visual durante o movimento
   if (touchStartX && touchEndX && elements.currentProduct) {
@@ -1092,6 +1114,7 @@ function handleTouchMove(e) {
 }
 
 function handleTouchEnd(e) {
+  console.log('Touch end triggered', e);
   handleSwipeGesture();
   // Resetar transformação
   if (elements.currentProduct) {
@@ -1172,21 +1195,30 @@ function handleMouseLeave() {
 
 // Função para processar o gesto de swipe
 function handleSwipeGesture() {
+  console.log('Processing swipe gesture');
+  console.log('Start X:', touchStartX, 'End X:', touchEndX);
+  console.log('Start Y:', touchStartY, 'End Y:', touchEndY);
+  
   if (!touchStartX || !touchEndX) return;
   
   const diffX = touchStartX - touchEndX;
   const diffY = touchStartY - touchEndY;
   const minSwipeDistance = 30; // Distância mínima reduzida para melhor sensibilidade em mobile
   
+  console.log('Diff X:', diffX, 'Diff Y:', diffY);
+  
   // Verificar se o movimento foi principalmente horizontal
   if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffY) < 30) { // Limitar movimento vertical
+    console.log('Horizontal swipe detected');
     // Swipe horizontal
     if (Math.abs(diffX) > minSwipeDistance) {
       if (diffX > 0) {
         // Swipe para a esquerda - próximo produto
+        console.log('Swipe left - next product');
         proximoProduto();
       } else {
         // Swipe para a direita - produto anterior
+        console.log('Swipe right - previous product');
         produtoAnterior();
       }
       // Resetar valores após o swipe
@@ -1194,7 +1226,11 @@ function handleSwipeGesture() {
       touchEndX = 0;
       touchStartY = 0;
       touchEndY = 0;
+    } else {
+      console.log('Swipe distance too small');
     }
+  } else {
+    console.log('Not a valid horizontal swipe');
   }
 }
 
@@ -1366,5 +1402,20 @@ function tratarErroLocalizacao(error) {
     elements.deliveryError.textContent = errorMessage;
     elements.deliveryError.style.display = 'block';
     elements.deliveryInfo.style.display = 'none';
+  }
+}
+
+// Atualizar estado dos botões do carrossel
+function atualizarEstadoBotoes() {
+  const produtosDaCategoria = produtosPorCategoria[categoriaAtual];
+  
+  if (produtosDaCategoria.length <= 1) {
+    // Se houver 0 ou 1 produto, desativar ambos os botões
+    if (elements.prevProductBtn) elements.prevProductBtn.disabled = true;
+    if (elements.nextProductBtn) elements.nextProductBtn.disabled = true;
+  } else {
+    // Ativar ambos os botões
+    if (elements.prevProductBtn) elements.prevProductBtn.disabled = false;
+    if (elements.nextProductBtn) elements.nextProductBtn.disabled = false;
   }
 }
