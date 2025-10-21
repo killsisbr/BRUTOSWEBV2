@@ -12,6 +12,13 @@
     <!-- Cabeçalho -->
     <header class="app-header">
       <h1>Brutus Burger</h1>
+      <div class="header-search">
+        <input type="text" id="search-input" placeholder="Buscar lanche...">
+        <button id="search-button" class="search-button">
+          <i class="fas fa-search"></i>
+        </button>
+        <div id="search-results" class="search-results"></div>
+      </div>
       <div class="header-actions">
         <button id="cart-icon" class="icon-button">
           <i class="fas fa-shopping-cart"></i>
@@ -76,13 +83,6 @@
               <!-- Adicionais serão carregados aqui -->
             </div>
             
-            <!-- Seção de Lanches no Carrinho -->
-            <div id="cart-items-section" class="cart-items-section" style="display: none; margin-top: 20px;">
-              <h4>Lanches no Carrinho:</h4>
-              <div id="cart-items-list" class="cart-items-list">
-                <!-- Lanches do carrinho serão carregados aqui -->
-              </div>
-            </div>
           </div>
           <div class="observation-section">
             <label for="observation-input">Observações:</label>
@@ -123,6 +123,11 @@
           <button class="close-button">&times;</button>
         </div>
         <div class="modal-body">
+          <div id="whatsapp-info" class="whatsapp-info">
+            <i class="fab fa-whatsapp whatsapp-icon"></i>
+            <p>Pedido iniciado via WhatsApp</p>
+          </div>
+          
           <div class="order-summary">
             <h3>Resumo do Pedido</h3>
             <ul id="order-items-summary">
@@ -132,6 +137,79 @@
               <span>Total:</span>
               <span id="order-total">R$ 0,00</span>
             </div>
+            
+            <!-- Formulário de cliente -->
+            <div class="client-form">
+              <h3>Seus Dados</h3>
+              <div class="form-group">
+                <label for="client-name">Nome: *</label>
+                <input type="text" id="client-name" placeholder="Seu nome completo">
+              </div>
+              <!-- REMOVIDO: Campo de telefone opcional -->
+              <div class="form-group">
+                <label for="client-address">Endereço: *</label>
+                <textarea id="client-address" placeholder="Rua, número, bairro, complemento"></textarea>
+                <button type="button" id="calcular-taxa-btn" class="calcular-taxa-btn" style="margin-top: 10px; display: none;">
+                  <i class="fas fa-calculator"></i> Calcular Taxa de Entrega
+                </button>
+                <div id="previous-address" class="previous-address" style="display: none;">
+                  <label>
+                    <input type="checkbox" id="use-previous-address" checked>
+                    <span id="previous-address-text"></span>
+                  </label>
+                </div>
+              </div>
+              
+              <!-- Seção de Entrega -->
+              <div id="delivery-section" class="delivery-section">
+                <h3>Entrega</h3>
+                <button type="button" id="use-location-btn" class="use-location-btn">
+                  <i class="fas fa-map-marker-alt"></i> Usar minha localização
+                </button>
+                
+                <!-- Informações da entrega -->
+                <div id="delivery-info" class="delivery-info" style="display: none;">
+                  <p>Distância: <span id="delivery-distance">0</span> km</p>
+                  <p>Valor da entrega: R$ <span id="delivery-price">0,00</span></p>
+                </div>
+                
+                <!-- Erros da entrega -->
+                <div id="delivery-error" class="delivery-error" style="display: none; color: #e74c3c;">
+                </div>
+                
+                <!-- Campo oculto para coordenadas -->
+                <input type="hidden" id="client-coordinates" name="client-coordinates">
+              </div>
+              
+              <!-- Modal do Mapa -->
+              <div id="map-modal" class="modal">
+                <div class="modal-content map-modal-content">
+                  <div class="modal-header">
+                    <h2>Selecionar Localização</h2>
+                    <button class="close-button">&times;</button>
+                  </div>
+                  <div class="modal-body">
+                    <div id="map-container" style="width: 100%; height: 400px; margin-bottom: 20px;"></div>
+                    <div class="map-controls">
+                      <button id="confirm-location-btn" class="confirm-button">Confirmar Localização</button>
+                      <button id="cancel-map-btn" class="checkout-button">Cancelar</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="payment-method">Forma de Pagamento:</label>
+                  <select id="payment-method" class="form-control">
+                    <option value="dinheiro">Dinheiro</option>
+                    <option value="cartao">Cartão</option>
+                    <option value="pix">PIX</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
             <button id="confirm-order" class="confirm-button">Confirmar Pedido</button>
           </div>
         </div>

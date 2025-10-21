@@ -232,7 +232,8 @@ app.post('/api/pedidos', async (req, res) => {
             pedidoId,
             cliente,
             itens,
-            total
+            total,
+            entrega
           });
         } catch (error) {
           console.error('Erro ao enviar notificação via WhatsApp:', error);
@@ -448,6 +449,55 @@ app.get('/api/clientes/:whatsappId', async (req, res) => {
   } catch (error) {
     console.error('Erro ao buscar cliente:', error);
     res.status(500).json({ error: 'Erro ao buscar cliente' });
+  }
+});
+
+// Novo endpoint para obter o QR Code do WhatsApp
+app.get('/api/whatsapp/qr-code', async (req, res) => {
+  try {
+    if (!whatsappService) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Serviço do WhatsApp não inicializado',
+        status: 'unavailable'
+      });
+    }
+    
+    // Obter status da conexão
+    const status = whatsappService.getStatus();
+    
+    // Se já estiver conectado, retornar status de sucesso
+    if (status.connected) {
+      return res.json({ 
+        success: true, 
+        status: 'connected',
+        message: 'WhatsApp já está conectado'
+      });
+    }
+    
+    // Se não houver QR Code disponível, retornar status apropriado
+    if (!status.qrCodeAvailable) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Nenhum QR Code disponível. O cliente do WhatsApp ainda não foi inicializado.',
+        status: 'pending'
+      });
+    }
+    
+    // Gerar e retornar o QR Code
+    const qrCodeDataURL = await whatsappService.getQRCodeDataURL();
+    res.json({ 
+      success: true, 
+      status: 'qr_available',
+      qrCode: qrCodeDataURL 
+    });
+  } catch (error) {
+    console.error('Erro ao obter QR Code:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      status: 'error'
+    });
   }
 });
 

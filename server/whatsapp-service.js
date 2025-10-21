@@ -1,5 +1,6 @@
 import pkg from 'whatsapp-web.js';
 import qrcode from 'qrcode-terminal';
+import qrcodeImage from 'qrcode';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -20,6 +21,8 @@ class WhatsAppService {
     this.client = null;
     this.clients = new Map(); // Para armazenar dados temporários dos clientes
     this.groupId = process.env.WHATSAPP_GROUP_ID || null; // ID do grupo para envio de pedidos
+    this.lastQRCode = null; // Armazenar o último QR Code gerado
+    this.isConnected = false; // Status da conexão
   }
 
   // Inicializar o cliente do WhatsApp
@@ -44,13 +47,23 @@ class WhatsAppService {
       }
     });
 
-    this.client.on('qr', qr => {
+    this.client.on('qr', async qr => {
       console.log('QR Code recebido, escaneie com seu WhatsApp:');
       qrcode.generate(qr, { small: true });
+      // Armazenar o QR Code para uso posterior
+      this.lastQRCode = qr;
+      this.isConnected = false;
     });
 
     this.client.on('ready', () => {
       console.log('Cliente do WhatsApp pronto!');
+      this.isConnected = true;
+    });
+
+    this.client.on('disconnected', (reason) => {
+      console.log('Cliente do WhatsApp desconectado:', reason);
+      this.isConnected = false;
+      this.lastQRCode = null;
     });
 
     this.client.on('message', async message => {
@@ -58,6 +71,29 @@ class WhatsAppService {
     });
 
     this.client.initialize();
+  }
+
+  // Método para obter o QR Code como imagem Data URL
+  async getQRCodeDataURL() {
+    if (!this.lastQRCode) {
+      throw new Error('Nenhum QR Code disponível. O cliente do WhatsApp ainda não foi inicializado ou já está conectado.');
+    }
+    
+    try {
+      // Gerar QR Code como Data URL
+      const dataURL = await qrcodeImage.toDataURL(this.lastQRCode, { width: 300 });
+      return dataURL;
+    } catch (error) {
+      throw new Error('Erro ao gerar QR Code: ' + error.message);
+    }
+  }
+
+  // Método para obter o status da conexão do WhatsApp
+  getStatus() {
+    return {
+      connected: this.isConnected,
+      qrCodeAvailable: !!this.lastQRCode
+    };
   }
 
   // Manipular mensagens recebidas
@@ -145,14 +181,23 @@ Após finalizar seu pedido no site, você receberá um resumo aqui no WhatsApp!`
       itemsList += `• ${item.quantidade}x ${item.produto.nome} - R$ ${itemTotal.toFixed(2).replace('.', ',')}\n`;
     });
     
+    // Adicionar valor da entrega ao total, se disponível
+    let deliveryInfo = '';
+    if (orderData.entrega && orderData.entrega.price) {
+      const deliveryValue = parseFloat(orderData.entrega.price);
+      if (!isNaN(deliveryValue) && deliveryValue > 0) {
+        deliveryInfo = `• Taxa de entrega - R$ ${deliveryValue.toFixed(2).replace('.', ',')}\n`;
+        total += deliveryValue;
+      }
+    }
+    
     const summaryMessage = `✅ *Pedido Confirmado!*
     
 Número do pedido: *#${orderData.pedidoId}*
 Link para acompanhar seu pedido: https://brutusburger.online/pedido/${orderData.pedidoId}
     
 Itens:
-${itemsList}
-*Total: R$ ${total.toFixed(2).replace('.', ',')}*
+${itemsList}${deliveryInfo}*Total: R$ ${total.toFixed(2).replace('.', ',')}*
 
 Informações do cliente:
 Nome: ${orderData.cliente.nome}
@@ -180,11 +225,17 @@ ${statusMessages[status] || 'Seu pedido foi atualizado!'}`;
     await chat.sendMessage(statusMessage);
   }
 
-  // Enviar detalhes do pedido para o grupo dos motoboys
+  // Enviar pedido para o grupo de entregas
   async sendOrderToDeliveryGroup(orderData) {
-    // Verificar se o ID do grupo foi configurado
+    // Verificar se o ID do grupo está configurado
     if (!this.groupId) {
       console.log('ID do grupo do WhatsApp não configurado. Não é possível enviar pedido para o grupo.');
+      return;
+    }
+
+    // Verificar se o cliente está conectado
+    if (!this.isConnected) {
+      console.log('Cliente do WhatsApp não está conectado. Não é possível enviar pedido para o grupo.');
       return;
     }
 

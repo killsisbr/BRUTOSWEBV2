@@ -41,7 +41,12 @@ const elements = {
   uploadImageBtn: document.getElementById('upload-image-btn'),
   // Elementos do modal de exclusão
   cancelDeleteBtn: document.getElementById('cancel-delete-btn'),
-  confirmDeleteBtn: document.getElementById('confirm-delete-btn')
+  confirmDeleteBtn: document.getElementById('confirm-delete-btn'),
+  // Novos elementos para o WhatsApp
+  whatsappBtn: document.getElementById('whatsapp-btn'),
+  whatsappModal: document.getElementById('whatsapp-modal'),
+  qrCodeContainer: document.getElementById('qr-code-container'),
+  refreshQrBtn: document.getElementById('refresh-qr-btn')
 };
 
 // Verificar se todos os elementos foram encontrados
@@ -567,6 +572,97 @@ function fecharModal(modal) {
   document.body.style.overflow = 'auto';
 }
 
+// Função para carregar o QR Code do WhatsApp
+async function carregarQRCode() {
+  try {
+    const response = await fetch('/api/whatsapp/qr-code');
+    const data = await response.json();
+    
+    if (data.success) {
+      // Verificar o status da resposta
+      if (data.status === 'connected') {
+        elements.qrCodeContainer.innerHTML = `
+          <div class="whatsapp-connected">
+            <i class="fab fa-whatsapp" style="font-size: 48px; color: #25D366; margin-bottom: 20px;"></i>
+            <h3>WhatsApp Conectado!</h3>
+            <p>O WhatsApp do restaurante já está vinculado e funcionando corretamente.</p>
+          </div>
+        `;
+      } else if (data.status === 'qr_available' && data.qrCode) {
+        elements.qrCodeContainer.innerHTML = `
+          <img src="${data.qrCode}" alt="QR Code do WhatsApp" style="width: 100%; max-width: 300px;">
+          <p style="margin-top: 15px; font-weight: bold;">Escaneie este QR Code com o WhatsApp do seu celular</p>
+        `;
+      }
+    } else {
+      // Tratar diferentes tipos de erro
+      if (data.status === 'pending') {
+        elements.qrCodeContainer.innerHTML = `
+          <div class="whatsapp-pending">
+            <i class="fas fa-clock" style="font-size: 48px; color: #f39c12; margin-bottom: 20px;"></i>
+            <h3>Aguardando inicialização...</h3>
+            <p>O cliente do WhatsApp está sendo inicializado. Por favor, aguarde alguns segundos e tente novamente.</p>
+            <button id="retry-qr-btn" class="checkout-button" style="margin-top: 15px;">Tentar Novamente</button>
+          </div>
+        `;
+        
+        // Adicionar evento para o botão de tentar novamente
+        const retryBtn = document.getElementById('retry-qr-btn');
+        if (retryBtn) {
+          retryBtn.addEventListener('click', carregarQRCode);
+        }
+      } else {
+        elements.qrCodeContainer.innerHTML = `
+          <div class="whatsapp-error">
+            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #e74c3c; margin-bottom: 20px;"></i>
+            <h3>Erro ao carregar QR Code</h3>
+            <p>${data.error || 'Ocorreu um erro ao carregar o QR Code. Por favor, tente novamente.'}</p>
+            <button id="retry-qr-btn" class="checkout-button" style="margin-top: 15px;">Tentar Novamente</button>
+          </div>
+        `;
+        
+        // Adicionar evento para o botão de tentar novamente
+        const retryBtn = document.getElementById('retry-qr-btn');
+        if (retryBtn) {
+          retryBtn.addEventListener('click', carregarQRCode);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao carregar QR Code:', error);
+    elements.qrCodeContainer.innerHTML = `
+      <div class="whatsapp-error">
+        <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #e74c3c; margin-bottom: 20px;"></i>
+        <h3>Erro de Conexão</h3>
+        <p>Não foi possível conectar ao servidor. Por favor, verifique sua conexão e tente novamente.</p>
+        <button id="retry-qr-btn" class="checkout-button" style="margin-top: 15px;">Tentar Novamente</button>
+      </div>
+    `;
+    
+    // Adicionar evento para o botão de tentar novamente
+    const retryBtn = document.getElementById('retry-qr-btn');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', carregarQRCode);
+    }
+  }
+}
+
+// Mostrar modal do WhatsApp
+function mostrarModalWhatsApp() {
+  // Mostrar modal
+  elements.whatsappModal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  
+  // Carregar QR Code
+  carregarQRCode();
+}
+
+// Fechar modal do WhatsApp
+function fecharModalWhatsApp() {
+  elements.whatsappModal.classList.remove('show');
+  document.body.style.overflow = 'auto';
+}
+
 // Event Listeners
 // Verificar se os elementos existem antes de adicionar event listeners
 if (elements.saveUrlBtn) {
@@ -611,12 +707,27 @@ if (elements.autoPrintToggle) {
 }
 */
 
+// Adicionar evento para o botão do WhatsApp
+if (elements.whatsappBtn) {
+  elements.whatsappBtn.addEventListener('click', mostrarModalWhatsApp);
+}
+
+// Adicionar evento para o botão de atualizar QR Code
+if (elements.refreshQrBtn) {
+  elements.refreshQrBtn.addEventListener('click', carregarQRCode);
+}
+
 // Fechar modais com botão X
 if (elements.closeButtons) {
   elements.closeButtons.forEach(button => {
     button.addEventListener('click', () => {
       const modal = button.closest('.modal');
-      fecharModal(modal);
+      // Verificar se é o modal do WhatsApp
+      if (modal === elements.whatsappModal) {
+        fecharModalWhatsApp();
+      } else {
+        fecharModal(modal);
+      }
     });
   });
 }
@@ -625,7 +736,12 @@ if (elements.closeButtons) {
 document.querySelectorAll('.modal').forEach(modal => {
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
-      fecharModal(modal);
+      // Verificar se é o modal do WhatsApp
+      if (modal === elements.whatsappModal) {
+        fecharModalWhatsApp();
+      } else {
+        fecharModal(modal);
+      }
     }
   });
 });

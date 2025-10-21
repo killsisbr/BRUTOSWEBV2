@@ -173,86 +173,170 @@ function renderizarQuadro() {
 
 // Criar card de pedido
 function criarCardPedido(pedido) {
-  const card = document.createElement('div');
-  card.className = 'pc-order-card';
-  card.dataset.id = pedido.id;
-  
-  // Formatar data
-  const data = new Date(pedido.data);
-  const dataFormatada = data.toLocaleDateString('pt-BR');
-  const horaFormatada = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  
-  // Calcular total de itens
-  const totalItens = pedido.itens.reduce((total, item) => total + item.quantidade, 0);
-  
-  card.innerHTML = `
-    <div class="pc-order-header">
-      <div class="pc-order-id">Pedido #${pedido.id}</div>
-      <div class="pc-order-time">${horaFormatada}</div>
-    </div>
-    <div class="pc-order-details">
-      <div class="pc-customer-name">${pedido.cliente_nome}</div>
-      <div class="pc-order-items">${totalItens} item(s)</div>
-      <div class="pc-order-total">R$ ${pedido.total.toFixed(2).replace('.', ',')}</div>
-    </div>
-    <div class="pc-order-footer">
-      <span class="pc-order-status" style="background-color: ${statusConfig[pedido.status].color}">
-        <i class="fas ${statusConfig[pedido.status].icon}"></i>
-        ${statusConfig[pedido.status].text}
-      </span>
-    </div>
-  `;
-  
-  // Adicionar evento de clique
-  card.addEventListener('click', () => mostrarDetalhesPedido(pedido));
-  
-  return card;
+  try {
+    const card = document.createElement('div');
+    card.className = 'pc-order-card';
+    card.dataset.id = pedido.id;
+    
+    // Verificar se o pedido tem os dados necessários
+    if (!pedido) {
+      console.error('Pedido inválido para criação de card:', pedido);
+      return card;
+    }
+    
+    // Formatar data
+    let dataFormatada = 'Data não disponível';
+    let horaFormatada = 'Hora não disponível';
+    
+    try {
+      const data = new Date(pedido.data);
+      if (!isNaN(data.getTime())) {
+        dataFormatada = data.toLocaleDateString('pt-BR');
+        horaFormatada = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      }
+    } catch (dateError) {
+      console.error('Erro ao formatar data do pedido:', dateError, pedido.data);
+    }
+    
+    // Calcular total de itens
+    let totalItens = 0;
+    try {
+      if (pedido.itens && Array.isArray(pedido.itens)) {
+        totalItens = pedido.itens.reduce((total, item) => total + (item.quantidade || 0), 0);
+      }
+    } catch (itemsError) {
+      console.error('Erro ao calcular total de itens:', itemsError, pedido.itens);
+    }
+    
+    // Obter valor total do pedido
+    const totalPedido = pedido.total || 0;
+    
+    // Verificar se o status existe no mapeamento
+    const statusInfo = statusConfig[pedido.status] || { 
+      text: pedido.status || 'Desconhecido', 
+      color: '#95a5a6', 
+      icon: 'fa-question-circle' 
+    };
+    
+    card.innerHTML = `
+      <div class="pc-order-header">
+        <div class="pc-order-id">Pedido #${pedido.id || 'N/A'}</div>
+        <div class="pc-order-time">${horaFormatada}</div>
+      </div>
+      <div class="pc-order-details">
+        <div class="pc-customer-name">${pedido.cliente_nome || 'Cliente não informado'}</div>
+        <div class="pc-order-items">${totalItens} item(s)</div>
+        <div class="pc-order-total">R$ ${totalPedido.toFixed(2).replace('.', ',')}</div>
+      </div>
+      <div class="pc-order-footer">
+        <span class="pc-order-status" style="background-color: ${statusInfo.color}">
+          <i class="fas ${statusInfo.icon}"></i>
+          ${statusInfo.text}
+        </span>
+      </div>
+    `;
+    
+    // Adicionar evento de clique
+    card.addEventListener('click', () => mostrarDetalhesPedido(pedido));
+    
+    return card;
+  } catch (error) {
+    console.error('Erro ao criar card de pedido:', error, pedido);
+    // Criar um card de erro
+    const errorCard = document.createElement('div');
+    errorCard.className = 'pc-order-card';
+    errorCard.innerHTML = `
+      <div class="pc-order-header">
+        <div class="pc-order-id">Erro no Pedido</div>
+      </div>
+      <div class="pc-order-details">
+        <div class="pc-customer-name">Erro ao carregar pedido</div>
+        <div class="pc-order-items">ID: ${pedido ? pedido.id : 'Desconhecido'}</div>
+      </div>
+    `;
+    return errorCard;
+  }
 }
 
 // Mostrar detalhes do pedido
 function mostrarDetalhesPedido(pedido) {
-  pedidoSelecionado = pedido;
-  
-  // Atualizar informações do pedido
-  elements.orderIdDisplay.textContent = `Pedido #${pedido.id}`;
-  
-  // Atualizar badge de status
-  const statusInfo = statusConfig[pedido.status];
-  elements.orderStatusBadge.innerHTML = `
-    <i class="fas ${statusInfo.icon}"></i>
-    ${statusInfo.text}
-  `;
-  elements.orderStatusBadge.style.backgroundColor = statusInfo.color;
-  
-  // Atualizar informações do cliente
-  elements.customerName.textContent = pedido.cliente_nome || 'Não informado';
-  elements.customerPhone.textContent = pedido.cliente_telefone || 'Não informado';
-  elements.customerAddress.textContent = pedido.cliente_endereco || 'Não informado';
-  elements.paymentMethod.textContent = pedido.forma_pagamento || 'Não informado';
-  
-  // Atualizar itens do pedido
-  elements.orderItemsList.innerHTML = '';
-  pedido.itens.forEach(item => {
-    const itemElement = document.createElement('div');
-    itemElement.className = 'pc-item-row';
-    itemElement.innerHTML = `
-      <div class="pc-item-details">
-        <div class="pc-item-name">${item.produto_nome || item.produto.nome}</div>
-        <div class="pc-item-quantity">Quantidade: ${item.quantidade}</div>
-      </div>
-      <div class="pc-item-price">R$ ${(item.preco_unitario * item.quantidade).toFixed(2).replace('.', ',')}</div>
+  try {
+    pedidoSelecionado = pedido;
+    
+    // Verificar se o pedido tem todos os dados necessários
+    if (!pedido) {
+      console.error('Pedido inválido:', pedido);
+      alert('Erro: Pedido inválido. Por favor, atualize a página e tente novamente.');
+      return;
+    }
+    
+    // Atualizar informações do pedido
+    elements.orderIdDisplay.textContent = `Pedido #${pedido.id}`;
+    
+    // Verificar se o status existe no mapeamento
+    const statusInfo = statusConfig[pedido.status] || { 
+      text: pedido.status || 'Desconhecido', 
+      color: '#95a5a6', 
+      icon: 'fa-question-circle' 
+    };
+    
+    elements.orderStatusBadge.innerHTML = `
+      <i class="fas ${statusInfo.icon}"></i>
+      ${statusInfo.text}
     `;
-    elements.orderItemsList.appendChild(itemElement);
-  });
-  
-  // Atualizar total
-  elements.orderTotalAmount.textContent = `R$ ${pedido.total.toFixed(2).replace('.', ',')}`;
-  
-  // Atualizar botões de status
-  atualizarBotoesStatus(pedido.status);
-  
-  // Mostrar modal
-  mostrarModal(elements.orderDetailsModal);
+    elements.orderStatusBadge.style.backgroundColor = statusInfo.color;
+    
+    // Atualizar informações do cliente
+    elements.customerName.textContent = pedido.cliente_nome || 'Não informado';
+    elements.customerPhone.textContent = pedido.cliente_telefone || 'Não informado';
+    elements.customerAddress.textContent = pedido.cliente_endereco || 'Não informado';
+    elements.paymentMethod.textContent = pedido.forma_pagamento || 'Não informado';
+    
+    // Verificar se há itens no pedido
+    if (!pedido.itens || !Array.isArray(pedido.itens)) {
+      console.error('Itens do pedido inválidos:', pedido);
+      elements.orderItemsList.innerHTML = '<div class="pc-item-row">Nenhum item encontrado</div>';
+    } else {
+      // Atualizar itens do pedido
+      elements.orderItemsList.innerHTML = '';
+      pedido.itens.forEach(item => {
+        try {
+          const itemElement = document.createElement('div');
+          itemElement.className = 'pc-item-row';
+          
+          // Verificar se o item tem as propriedades necessárias
+          const produtoNome = item.produto_nome || (item.produto && item.produto.nome) || 'Produto não identificado';
+          const quantidade = item.quantidade || 0;
+          const precoUnitario = item.preco_unitario || (item.produto && item.produto.preco) || 0;
+          const precoTotal = (precoUnitario * quantidade).toFixed(2).replace('.', ',');
+          
+          itemElement.innerHTML = `
+            <div class="pc-item-details">
+              <div class="pc-item-name">${produtoNome}</div>
+              <div class="pc-item-quantity">Quantidade: ${quantidade}</div>
+            </div>
+            <div class="pc-item-price">R$ ${precoTotal}</div>
+          `;
+          elements.orderItemsList.appendChild(itemElement);
+        } catch (itemError) {
+          console.error('Erro ao processar item do pedido:', itemError, item);
+        }
+      });
+    }
+    
+    // Atualizar total
+    const total = pedido.total || 0;
+    elements.orderTotalAmount.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+    
+    // Atualizar botões de status
+    atualizarBotoesStatus(pedido.status);
+    
+    // Mostrar modal
+    mostrarModal(elements.orderDetailsModal);
+  } catch (error) {
+    console.error('Erro ao mostrar detalhes do pedido:', error, pedido);
+    alert('Erro ao carregar detalhes do pedido. Por favor, atualize a página e tente novamente.');
+  }
 }
 
 // Atualizar botões de status
@@ -516,3 +600,58 @@ function fecharModal(modal) {
   modal.classList.remove('show');
   document.body.style.overflow = 'auto';
 }
+
+// Função para iniciar a atualização automática
+function iniciarAtualizacaoAutomatica() {
+  // Verificar se o checkbox está marcado
+  const autoRefreshEnabled = elements.autoRefreshCheckbox.checked;
+  
+  // Limpar intervalo existente
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+    autoRefreshInterval = null;
+  }
+  
+  // Iniciar novo intervalo se a opção estiver habilitada
+  if (autoRefreshEnabled) {
+    autoRefreshInterval = setInterval(carregarPedidos, 5000); // Atualizar a cada 5 segundos
+  }
+}
+
+// Inicialização quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', () => {
+  // Carregar pedidos iniciais
+  carregarPedidos();
+  
+  // Adicionar evento de clique ao botão de refresh
+  elements.refreshBtn.addEventListener('click', carregarPedidos);
+  
+  // Adicionar evento de clique ao botão de teste de impressão
+  elements.printTestBtn.addEventListener('click', testarImpressao);
+  
+  // Adicionar evento de clique ao botão de impressão de pedido
+  elements.printOrderBtn.addEventListener('click', imprimirPedidoSelecionado);
+  
+  // Adicionar evento de clique aos botões de fechar modal
+  elements.closeButtons.forEach(button => {
+    button.addEventListener('click', () => fecharModal(elements.orderDetailsModal));
+  });
+  
+  // Adicionar evento de clique ao botão de arquivar pedido
+  elements.archiveOrderBtn.addEventListener('click', arquivarPedido);
+  
+  // Adicionar evento de clique ao botão de remover pedido
+  elements.deleteOrderBtn.addEventListener('click', removerPedido);
+  
+  // Adicionar evento de clique ao botão de avançar status
+  elements.nextStatusBtn.addEventListener('click', avancarStatus);
+  
+  // Adicionar evento de clique ao botão de voltar status
+  elements.prevStatusBtn.addEventListener('click', voltarStatus);
+  
+  // Adicionar evento de mudança ao checkbox de atualização automática
+  elements.autoRefreshCheckbox.addEventListener('change', iniciarAtualizacaoAutomatica);
+  
+  // Iniciar atualização automática se estiver habilitada
+  iniciarAtualizacaoAutomatica();
+});

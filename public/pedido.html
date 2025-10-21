@@ -12,6 +12,13 @@
     <!-- Cabeçalho -->
     <header class="app-header">
       <h1>Brutus Burger</h1>
+      <div class="header-search">
+        <input type="text" id="search-input" placeholder="Buscar lanche...">
+        <button id="search-button" class="search-button">
+          <i class="fas fa-search"></i>
+        </button>
+        <div id="search-results" class="search-results"></div>
+      </div>
       <div class="header-actions">
         <button id="cart-icon" class="icon-button">
           <i class="fas fa-shopping-cart"></i>
@@ -76,13 +83,6 @@
               <!-- Adicionais serão carregados aqui -->
             </div>
             
-            <!-- Seção de Lanches no Carrinho -->
-            <div id="cart-items-section" class="cart-items-section" style="display: none; margin-top: 20px;">
-              <h4>Lanches no Carrinho:</h4>
-              <div id="cart-items-list" class="cart-items-list">
-                <!-- Lanches do carrinho serão carregados aqui -->
-              </div>
-            </div>
           </div>
           <div class="observation-section">
             <label for="observation-input">Observações:</label>
@@ -207,15 +207,7 @@
                     <option value="pix">PIX</option>
                   </select>
                 </div>
-                
-                <!-- Campo para valor pago em dinheiro -->
-                <div class="form-group" id="dinheiro-section">
-                  <label for="valor-pago">Valor da nota (R$):</label>
-                  <input type="number" id="valor-pago" class="form-control" placeholder="0,00" step="0.01" min="0">
-                </div>
               </div>
-              <div class="help-text">Informe o valor em dinheiro para calcular o troco</div>
-
             </div>
             
             <button id="confirm-order" class="confirm-button">Confirmar Pedido</button>
@@ -230,15 +222,13 @@
         <div class="modal-body">
           <i class="fas fa-check-circle confirmation-icon"></i>
           <h2>Pedido Confirmado!</h2>
-          <p>Obrigado pelo seu pedido. Você receberá uma confirmação no WhatsApp.</p>
+          <p>Obrigado pelo seu pedido.</p>
           <button id="new-order-btn" class="new-order-button">Novo Pedido</button>
         </div>
       </div>
     </div>
   </div>
-  <script src="pedido-script.js"></script>
-  <script src="entrega.js"></script>
-  <script src="mapa.js"></script>
-  <script src="calcular-taxa.js"></script>
+  <script src="pedido-script-debug.js"></script>
+  <script src="image-debug.js"></script>
 </body>
 </html>

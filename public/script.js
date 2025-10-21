@@ -17,6 +17,8 @@ let adicionaisSelecionados = [];
 let adicionaisParaItensCarrinho = {};
 // Novo estado para controlar adicionais para novos itens
 let adicionaisParaNovoItem = [];
+// Novos estados para entrega
+let entregaInfo = null;
 
 // Elementos do DOM
 const elements = {
@@ -53,7 +55,30 @@ const elements = {
   // Elementos do seletor de categorias
   categoryLanchesBtn: document.getElementById('category-lanches'),
   categoryBebidasBtn: document.getElementById('category-bebidas'),
-  categoryPorcoesBtn: document.getElementById('category-porcoes')
+  categoryPorcoesBtn: document.getElementById('category-porcoes'),
+  // Adicionar elementos da barra de pesquisa
+  searchInput: document.getElementById('search-input'),
+  searchButton: document.getElementById('search-button'),
+  searchResults: document.getElementById('search-results'),
+  // Novos elementos para entrega e formulário
+  whatsappInfo: document.getElementById('whatsapp-info'),
+  clientName: document.getElementById('client-name'),
+  clientAddress: document.getElementById('client-address'),
+  calcularTaxaBtn: document.getElementById('calcular-taxa-btn'),
+  previousAddress: document.getElementById('previous-address'),
+  usePreviousAddress: document.getElementById('use-previous-address'),
+  previousAddressText: document.getElementById('previous-address-text'),
+  useLocationBtn: document.getElementById('use-location-btn'),
+  deliveryInfo: document.getElementById('delivery-info'),
+  deliveryDistance: document.getElementById('delivery-distance'),
+  deliveryPrice: document.getElementById('delivery-price'),
+  deliveryError: document.getElementById('delivery-error'),
+  clientCoordinates: document.getElementById('client-coordinates'),
+  mapModal: document.getElementById('map-modal'),
+  mapContainer: document.getElementById('map-container'),
+  confirmLocationBtn: document.getElementById('confirm-location-btn'),
+  cancelMapBtn: document.getElementById('cancel-map-btn'),
+  paymentMethod: document.getElementById('payment-method')
 };
 
 // Função para carregar produtos
@@ -521,6 +546,11 @@ function atualizarCarrinho() {
     return sum + precoProduto + precoAdicionais;
   }, 0);
   
+  // Adicionar valor da entrega, se disponível
+  if (entregaInfo && entregaInfo.price) {
+    total += entregaInfo.price;
+  }
+  
   elements.cartTotal.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
   elements.orderTotal.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
   
@@ -566,6 +596,252 @@ function atualizarResumoPedido() {
     li.innerHTML = itemHTML;
     elements.orderItemsSummary.appendChild(li);
   });
+  
+  // Adicionar item de entrega no resumo, se disponível
+  if (entregaInfo && entregaInfo.price) {
+    const entregaItem = document.createElement('li');
+    entregaItem.className = 'order-item-summary';
+    entregaItem.innerHTML = `
+      <div>
+        <div>Entrega</div>
+        <div>Distância: ${entregaInfo.distance.toFixed(2)} km</div>
+      </div>
+      <span>R$ ${entregaInfo.price.toFixed(2).replace('.', ',')}</span>
+    `;
+    elements.orderItemsSummary.appendChild(entregaItem);
+  }
+}
+
+// Função para usar a localização do usuário
+function usarLocalizacao() {
+  if (navigator.geolocation) {
+    // Mostrar mensagem de carregamento
+    if (elements.deliveryError) {
+      elements.deliveryError.textContent = 'Obtendo sua localização...';
+      elements.deliveryError.style.display = 'block';
+      if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        
+        // Calcular entrega com as coordenadas obtidas
+        calcularEntrega(latitude, longitude);
+      },
+      error => {
+        tratarErroLocalizacao(error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+  } else {
+    if (elements.deliveryError) {
+      elements.deliveryError.textContent = 'Geolocalização não é suportada pelo seu navegador.';
+      elements.deliveryError.style.display = 'block';
+    }
+  }
+}
+
+// Nova função para converter endereço em coordenadas e calcular entrega
+async function converterEnderecoECalcularEntrega() {
+  const endereco = elements.clientAddress ? elements.clientAddress.value.trim() : '';
+  
+  if (!endereco) {
+    if (elements.deliveryError) {
+      elements.deliveryError.textContent = 'Por favor, informe seu endereço para calcular o valor da entrega.';
+      elements.deliveryError.style.display = 'block';
+      if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
+    }
+    
+    // Esconder o botão de calcular taxa
+    if (elements.calcularTaxaBtn) {
+      elements.calcularTaxaBtn.style.display = 'none';
+    }
+    
+    return;
+  }
+  
+  // Mostrar mensagem de carregamento
+  if (elements.deliveryError) {
+    elements.deliveryError.textContent = 'Convertendo endereço e calculando entrega...';
+    elements.deliveryError.style.display = 'block';
+    if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
+  }
+  
+  try {
+    // Converter endereço em coordenadas
+    const response = await fetch('/api/entrega/calcular-taxa', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ endereco })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      // Verificar se o endereço está fora de Imbituva
+      if (data.isOutsideImbituva) {
+        // Mostrar mensagem especial para endereços fora de Imbituva
+        if (elements.deliveryError) {
+          elements.deliveryError.innerHTML = `
+            <div style="text-align: center; padding: 10px;">
+              <p><strong>⚠️ Endereço fora de Imbituva</strong></p>
+              <p>Calculamos uma taxa mínima de entrega de <strong>R$ ${data.price.toFixed(2).replace('.', ',')}</strong> para sua localização.</p>
+              <p>Endereço identificado: ${data.endereco}</p>
+              <p><small>Se tiver dificuldades com o endereço, utilize o botão "Usar minha localização" para obter sua posição exata.</small></p>
+            </div>
+          `;
+          elements.deliveryError.style.display = 'block';
+          if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
+        }
+      } else {
+        // Mostrar informações da entrega normalmente
+        if (elements.deliveryInfo && elements.deliveryDistance && elements.deliveryPrice) {
+          elements.deliveryDistance.textContent = data.distance.toFixed(2);
+          elements.deliveryPrice.textContent = data.price.toFixed(2).replace('.', ',');
+          elements.deliveryInfo.style.display = 'block';
+          elements.deliveryError.style.display = 'none';
+        }
+      }
+      
+      // Atualizar informações de entrega
+      entregaInfo = {
+        distance: data.distance,
+        price: data.price,
+        coordinates: data.coordinates
+      };
+      
+      // Salvar coordenadas no elemento hidden
+      if (elements.clientCoordinates) {
+        elements.clientCoordinates.value = JSON.stringify(data.coordinates);
+      }
+      
+      // Atualizar totais com o valor da entrega
+      atualizarCarrinho();
+      
+      // Esconder o botão de calcular taxa
+      if (elements.calcularTaxaBtn) {
+        elements.calcularTaxaBtn.style.display = 'none';
+      }
+    } else {
+      if (elements.deliveryError) {
+        elements.deliveryError.textContent = data.error || 'Erro ao calcular taxa de entrega.';
+        elements.deliveryError.style.display = 'block';
+        if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
+      }
+      
+      // Manter o botão visível em caso de erro
+      if (elements.calcularTaxaBtn) {
+        elements.calcularTaxaBtn.style.display = 'block';
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao calcular taxa de entrega:', error);
+    if (elements.deliveryError) {
+      elements.deliveryError.textContent = 'Erro ao processar o endereço. Por favor, tente novamente.';
+      elements.deliveryError.style.display = 'block';
+      if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
+    }
+    
+    // Manter o botão visível em caso de erro
+    if (elements.calcularTaxaBtn) {
+      elements.calcularTaxaBtn.style.display = 'block';
+    }
+  }
+}
+
+// Calcular valor da entrega
+async function calcularEntrega(latitude, longitude) {
+  try {
+    const response = await fetch('/api/entrega/calcular', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ latitude, longitude })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      if (data.error) {
+        // Fora da área de entrega
+        if (elements.deliveryError) {
+          elements.deliveryError.textContent = data.error;
+          elements.deliveryError.style.display = 'block';
+          if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
+        }
+      } else {
+        // Entrega válida
+        entregaInfo = {
+          distance: data.distance,
+          price: data.price,
+          coordinates: { lat: latitude, lng: longitude }
+        };
+        
+        if (elements.deliveryInfo && elements.deliveryDistance && elements.deliveryPrice) {
+          elements.deliveryDistance.textContent = data.distance.toFixed(2);
+          elements.deliveryPrice.textContent = data.price.toFixed(2).replace('.', ',');
+          elements.deliveryInfo.style.display = 'block';
+          elements.deliveryError.style.display = 'none';
+        }
+        
+        // Salvar coordenadas no elemento hidden
+        if (elements.clientCoordinates) {
+          elements.clientCoordinates.value = JSON.stringify({ lat: latitude, lng: longitude });
+        }
+        
+        // Atualizar totais com o valor da entrega
+        atualizarCarrinho();
+      }
+    } else {
+      if (elements.deliveryError) {
+        elements.deliveryError.textContent = data.error || 'Erro ao calcular entrega.';
+        elements.deliveryError.style.display = 'block';
+        if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao calcular entrega:', error);
+    if (elements.deliveryError) {
+      elements.deliveryError.textContent = 'Erro ao calcular valor da entrega. Por favor, tente novamente.';
+      elements.deliveryError.style.display = 'block';
+      if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
+    }
+  }
+}
+
+// Tratar erros de localização
+function tratarErroLocalizacao(error) {
+  let errorMessage = '';
+  
+  switch (error.code) {
+    case error.PERMISSION_DENIED:
+      errorMessage = 'Permissão para acessar localização negada. Por favor, habilite o acesso à localização nas configurações do seu navegador.';
+      break;
+    case error.POSITION_UNAVAILABLE:
+      errorMessage = 'Informação de localização indisponível. Por favor, tente novamente.';
+      break;
+    case error.TIMEOUT:
+      errorMessage = 'Tempo limite para obter localização esgotado. Por favor, tente novamente.';
+      break;
+    default:
+      errorMessage = 'Erro desconhecido ao obter localização.';
+      break;
+  }
+  
+  if (elements.deliveryError) {
+    elements.deliveryError.textContent = errorMessage;
+    elements.deliveryError.style.display = 'block';
+    if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
+  }
 }
 
 // Mostrar notificação
@@ -635,17 +911,81 @@ elements.checkoutBtn.addEventListener('click', () => {
   mostrarModal(elements.checkoutModal);
 });
 
-elements.confirmOrderBtn.addEventListener('click', () => {
+elements.confirmOrderBtn.addEventListener('click', async () => {
   if (carrinho.length === 0) return;
   
-  // Fechar modal de checkout e mostrar confirmação
-  fecharModal(elements.checkoutModal);
-  mostrarModal(elements.confirmationModal);
+  // Validar campos obrigatórios
+  if (elements.clientName && !elements.clientName.value) {
+    mostrarNotificacao('Por favor, informe seu nome!');
+    return;
+  }
   
-  // Limpar carrinho
-  carrinho = [];
-  atualizarCarrinho();
+  if (elements.clientAddress && !elements.clientAddress.value) {
+    mostrarNotificacao('Por favor, informe seu endereço!');
+    return;
+  }
+  
+  // Validar valor pago se for dinheiro
+  if (elements.paymentMethod && elements.paymentMethod.value === 'dinheiro') {
+    // Adicione aqui a lógica de validação de troco se necessário
+  }
+  
+  // Preparar dados do pedido
+  const pedidoData = {
+    cliente: {
+      nome: elements.clientName ? elements.clientName.value : '',
+      endereco: elements.clientAddress ? elements.clientAddress.value : '',
+      pagamento: elements.paymentMethod ? elements.paymentMethod.value : 'dinheiro'
+    },
+    itens: carrinho,
+    total: calcularTotalPedido(),
+    entrega: entregaInfo
+  };
+  
+  try {
+    // Aqui você pode enviar os dados para o servidor
+    console.log('Pedido a ser enviado:', pedidoData);
+    
+    // Fechar modal de checkout e mostrar confirmação
+    fecharModal(elements.checkoutModal);
+    mostrarModal(elements.confirmationModal);
+    
+    // Limpar carrinho
+    carrinho = [];
+    atualizarCarrinho();
+    
+    // Limpar informações de entrega
+    entregaInfo = null;
+    if (elements.deliveryInfo) {
+      elements.deliveryInfo.style.display = 'none';
+    }
+    if (elements.deliveryError) {
+      elements.deliveryError.style.display = 'none';
+    }
+    if (elements.clientCoordinates) {
+      elements.clientCoordinates.value = '';
+    }
+  } catch (error) {
+    console.error('Erro ao criar pedido:', error);
+    mostrarNotificacao('Erro ao criar pedido. Tente novamente.');
+  }
 });
+
+// Calcular total do pedido (itens + entrega)
+function calcularTotalPedido() {
+  const totalItens = carrinho.reduce((sum, item) => {
+    let precoProduto = item.produto.preco * item.quantidade;
+    const precoAdicionais = item.adicionais.reduce((acc, adicional) => acc + adicional.preco, 0) * item.quantidade;
+    return sum + precoProduto + precoAdicionais;
+  }, 0);
+  
+  // Adicionar valor da entrega, se disponível
+  if (entregaInfo && entregaInfo.price) {
+    return totalItens + entregaInfo.price;
+  }
+  
+  return totalItens;
+}
 
 elements.newOrderBtn.addEventListener('click', () => {
   fecharModal(elements.confirmationModal);
@@ -702,10 +1042,119 @@ document.querySelectorAll('.modal').forEach(modal => {
   });
 });
 
-// Inicializar a aplicação
-document.addEventListener('DOMContentLoaded', () => {
-  carregarProdutos();
+// Função para inicializar a barra de pesquisa
+function inicializarBarraPesquisa() {
+  // Adicionar evento de digitação no campo de pesquisa
+  elements.searchInput.addEventListener('input', debounce(pesquisarProdutos, 300));
   
+  // Adicionar evento de clique no botão de pesquisa
+  elements.searchButton.addEventListener('click', () => {
+    pesquisarProdutos();
+  });
+  
+  // Adicionar evento de clique fora da barra de pesquisa para fechar os resultados
+  document.addEventListener('click', (event) => {
+    if (!elements.searchInput.contains(event.target) && 
+        !elements.searchButton.contains(event.target) && 
+        !elements.searchResults.contains(event.target)) {
+      elements.searchResults.style.display = 'none';
+    }
+  });
+}
+
+// Função para pesquisar produtos
+function pesquisarProdutos() {
+  const termo = elements.searchInput.value.toLowerCase().trim();
+  
+  // Se o termo estiver vazio, esconder os resultados
+  if (termo === '') {
+    elements.searchResults.style.display = 'none';
+    return;
+  }
+  
+  // Filtrar produtos que correspondem ao termo de pesquisa
+  const resultados = produtos.filter(produto => 
+    produto.nome.toLowerCase().includes(termo) || 
+    (produto.descricao && produto.descricao.toLowerCase().includes(termo))
+  );
+  
+  // Renderizar resultados
+  renderizarResultadosPesquisa(resultados);
+}
+
+// Função para renderizar resultados da pesquisa
+function renderizarResultadosPesquisa(resultados) {
+  // Limitar a 10 resultados
+  const resultadosLimitados = resultados.slice(0, 10);
+  
+  if (resultadosLimitados.length === 0) {
+    elements.searchResults.innerHTML = '<div class="search-result-item">Nenhum produto encontrado</div>';
+    elements.searchResults.style.display = 'block';
+    return;
+  }
+  
+  elements.searchResults.innerHTML = resultadosLimitados.map(produto => `
+    <div class="search-result-item" data-id="${produto.id}">
+      <div class="search-result-image" style="background-image: url('${produto.imagem || ''}')"></div>
+      <div class="search-result-info">
+        <div class="search-result-name">${produto.nome}</div>
+        <div class="search-result-price">R$ ${produto.preco.toFixed(2).replace('.', ',')}</div>
+      </div>
+    </div>
+  `).join('');
+  
+  elements.searchResults.style.display = 'block';
+  
+  // Adicionar eventos de clique aos resultados
+  document.querySelectorAll('.search-result-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const produtoId = parseInt(item.dataset.id);
+      const produto = produtos.find(p => p.id === produtoId);
+      
+      if (produto) {
+        // Fechar resultados da pesquisa
+        elements.searchResults.style.display = 'none';
+        elements.searchInput.value = '';
+        
+        // Encontrar a categoria do produto
+        let categoriaProduto = 'lanches';
+        if (produto.categoria.includes('Bebida') || produto.categoria.includes('Bebidas') || 
+            produto.categoria.includes('Refrigerante') || produto.categoria.includes('Suco')) {
+          categoriaProduto = 'bebidas';
+        } else if (produto.categoria.includes('Porção') || produto.categoria.includes('Porções') || 
+                   produto.categoria.includes('Porcao') || produto.categoria.includes('Porcoes')) {
+          categoriaProduto = 'porcoes';
+        }
+        
+        // Mudar para a categoria do produto
+        mudarCategoria(categoriaProduto);
+        
+        // Encontrar o índice do produto na categoria
+        const indice = produtosPorCategoria[categoriaProduto].findIndex(p => p.id === produtoId);
+        if (indice !== -1) {
+          indiceProdutoAtual = indice;
+          atualizarCarrossel();
+        }
+      }
+    });
+  });
+}
+
+// Função debounce para limitar a frequência de chamadas
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Inicialização quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', () => {
   // Delegação de eventos para o botão "Adicionar ao Carrinho"
   // Agora que o DOM está carregado, podemos adicionar o event listener
   elements.currentProduct.addEventListener('click', (e) => {
@@ -721,6 +1170,57 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Prevenir scroll na página
   document.body.style.overflow = 'hidden';
+  
+  // Inicializar barra de pesquisa
+  inicializarBarraPesquisa();
+  
+  // Carregar produtos
+  carregarProdutos();
+  
+  // Adicionar evento para o botão de usar localização
+  if (elements.useLocationBtn) {
+    elements.useLocationBtn.addEventListener('click', usarLocalizacao);
+  }
+  
+  // Adicionar evento para calcular entrega quando o endereço for digitado
+  if (elements.clientAddress) {
+    // Mostrar botão de calcular taxa quando o campo de endereço recebe foco
+    elements.clientAddress.addEventListener('focus', function() {
+      if (elements.calcularTaxaBtn) {
+        elements.calcularTaxaBtn.style.display = 'block';
+      }
+    });
+    
+    // Mostrar botão de calcular taxa quando o usuário digita algo no campo de endereço
+    elements.clientAddress.addEventListener('input', function() {
+      if (elements.calcularTaxaBtn && elements.clientAddress.value.trim().length > 0) {
+        elements.calcularTaxaBtn.style.display = 'flex';
+      }
+    });
+  }
+  
+  // Adicionar evento para o botão de calcular taxa
+  if (elements.calcularTaxaBtn) {
+    elements.calcularTaxaBtn.addEventListener('click', function() {
+      converterEnderecoECalcularEntrega();
+    });
+  }
+  
+  // Adicionar evento para o botão de usar endereço anterior
+  if (elements.usePreviousAddress) {
+    elements.usePreviousAddress.addEventListener('change', () => {
+      if (elements.usePreviousAddress.checked && clienteInfo && clienteInfo.endereco) {
+        elements.clientAddress.value = clienteInfo.endereco;
+      }
+    });
+  }
+  
+  // Adicionar evento para mudança de método de pagamento
+  if (elements.paymentMethod) {
+    elements.paymentMethod.addEventListener('change', () => {
+      // Aqui você pode adicionar lógica específica para cada método de pagamento se necessário
+    });
+  }
 });
 
 // Atualizar estado dos botões do carrossel
