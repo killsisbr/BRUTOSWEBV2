@@ -149,7 +149,7 @@
               <div class="form-group">
                 <label for="client-address">Endereço: *</label>
                 <textarea id="client-address" placeholder="Rua, número, bairro, complemento"></textarea>
-                <button type="button" id="calcular-taxa-btn" class="calcular-taxa-btn" style="margin-top: 10px; display: none;">
+                <button type="button" id="calcular-taxa-btn" class="calcular-taxa-btn" style="margin-top: 10px;">
                   <i class="fas fa-calculator"></i> Calcular Taxa de Entrega
                 </button>
                 <div id="previous-address" class="previous-address" style="display: none;">
@@ -208,6 +208,13 @@
                   </select>
                 </div>
               </div>
+              
+              <!-- Campo para valor pago em dinheiro -->
+              <div id="dinheiro-section" style="display: none;">
+                <label for="valor-pago">Valor da nota (R$):</label>
+                <input type="number" id="valor-pago" step="0.01" min="0" placeholder="0,00">
+                <small>Informe o valor da nota para calcular o troco</small>
+              </div>
             </div>
             
             <button id="confirm-order" class="confirm-button">Confirmar Pedido</button>
@@ -228,6 +235,7 @@
       </div>
     </div>
   </div>
+  <script src="mapa.js"></script>
   <script src="pedido-script-debug.js"></script>
   <script src="image-debug.js"></script>
 </body>

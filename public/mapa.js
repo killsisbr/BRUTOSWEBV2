@@ -263,6 +263,16 @@ async function calculateDelivery(latitude, longitude) {
       if (data.error) {
         // Fora da área de entrega ou erro específico
         showDeliveryError(data.error);
+        
+        // Atualizar informações de entrega no objeto global mesmo quando há erro
+        // Isso é importante para que o sistema reconheça que a entrega foi calculada
+        if (typeof window !== 'undefined') {
+          window.entregaInfo = {
+            distance: data.distance || 0,
+            price: data.price || 0,
+            coordinates: { lat: latitude, lng: longitude }
+          };
+        }
       } else {
         // Entrega válida
         showDeliveryInfo(data.distance, data.price);
@@ -277,6 +287,15 @@ async function calculateDelivery(latitude, longitude) {
         const coordsInput = document.getElementById('client-coordinates');
         if (coordsInput) {
           coordsInput.value = JSON.stringify({ lat: latitude, lng: longitude });
+        }
+        
+        // Atualizar informações de entrega no objeto global
+        if (typeof window !== 'undefined') {
+          window.entregaInfo = {
+            distance: data.distance,
+            price: data.price,
+            coordinates: { lat: latitude, lng: longitude }
+          };
         }
       }
     } else {
@@ -305,6 +324,15 @@ function showDeliveryInfo(distance, price) {
     
     // Atualizar total do pedido
     updateOrderTotalWithDelivery(price);
+            
+    // Atualizar informações de entrega no objeto global
+    if (typeof window !== 'undefined') {
+      window.entregaInfo = {
+        distance: distance,
+        price: price,
+        coordinates: userLocation || { lat: 0, lng: 0 }
+      };
+    }
   }
 }
 

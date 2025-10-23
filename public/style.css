@@ -376,7 +376,7 @@ body {
 }
 
 .product-name {
-  font-size: 1.2rem;
+  font-size: 2.0rem; /* Aumentado de 1.2rem para 1.5rem */
   font-weight: 700;
   margin-bottom: 6px;
   color: var(--text-primary);
@@ -1974,6 +1974,8 @@ body {
   margin: 10px 0;
 }
 
+/* Final do arquivo CSS */
+}
 
 /* Estilos para os diferentes estados do WhatsApp */
 .whatsapp-connected {
@@ -2273,42 +2275,60 @@ body {
   font-size: 18px;
 }
 
-/* Estilo específico para o ícone do carrinho */
+/* Estilo específico para o ícone do carrinho - design moderno e elegante */
 #cart-icon {
-  background: rgba(39, 174, 96, 0.1); /* Fundo verde transparente */
+  background: #2d2d2d; /* Fundo cinza escuro elegante */
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  border: 2px solid var(--primary-color); /* Borda verde */
+  border: 2px solid #444; /* Borda cinza */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  position: relative;
 }
 
 #cart-icon:hover {
-  background: rgba(39, 174, 96, 0.2); /* Fundo verde mais claro ao passar o mouse */
-  transform: scale(1.1); /* Leve aumento ao passar o mouse */
+  background: #3d3d3d; /* Fundo cinza mais claro ao passar o mouse */
+  transform: scale(1.15); /* Aumento suave ao passar o mouse */
+  border-color: var(--primary-color); /* Borda verde ao passar o mouse */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 #cart-icon i {
   color: var(--primary-color); /* Ícone verde */
-  font-size: 1.4rem;
+  font-size: 1.6rem;
+  transition: all 0.3s ease;
+}
+
+#cart-icon:hover i {
+  color: #fff; /* Ícone branco ao passar o mouse */
+  transform: scale(1.1);
 }
 
 #cart-icon .cart-badge {
-  top: -5px;
-  right: -5px;
-  background: var(--secondary-color);
+  top: -6px;
+  right: -6px;
+  background: var(--primary-color); /* Fundo verde para o badge */
   color: white;
-  font-size: 0.7rem;
-  width: 20px;
-  height: 20px;
+  font-size: 0.75rem;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+#cart-icon:hover .cart-badge {
+  background: #fff; /* Fundo branco ao passar o mouse */
+  color: var(--primary-color); /* Texto verde ao passar o mouse */
+  transform: scale(1.1);
 }
 
 /* Estilos para o modal do QR Code do WhatsApp */
@@ -2347,4 +2367,93 @@ body {
 
 .qr-code-container li {
   margin: 10px 0;
+}
+
+/* Estilos para impressão térmica */
+@media print {
+  /* Configuração para papel térmico 80mm */
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+  
+  body {
+    width: 80mm;
+    margin: 0;
+    padding: 0;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  
+  /* Estilos específicos para conteúdo de impressão térmica */
+  .thermal-print-content {
+    width: 80mm;
+    max-width: 80mm;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .thermal-print-content pre {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.3;
+    margin: 0;
+    padding: 10px;
+    white-space: pre;
+    word-wrap: break-word;
+  }
+}
+
+/* Estilos específicos para o preview de impressão térmica */
+.thermal-print-preview {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.thermal-print-header {
+  background: #f8f9fa;
+  padding: 15px 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.thermal-print-header h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.thermal-print-header p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.thermal-print-content {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.thermal-print-footer {
+  background: #f8f9fa;
+  padding: 15px 20px;
+  border-top: 1px solid #ddd;
+}
+
+.thermal-print-instructions {
+  margin-bottom: 15px;
+  padding: 10px;
+  background: #e9f7fe;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.thermal-print-instructions i {
+  color: #007bff;
+}
+
+.thermal-print-actions {
+  display: flex;
+  justify-content: space-between;
 }

@@ -533,6 +533,78 @@
       cursor: not-allowed;
     }
     
+    /* Estilos específicos para o preview de impressão térmica */
+    .thermal-print-preview {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .thermal-print-header {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .thermal-print-header h3 {
+      margin: 0 0 10px 0;
+      color: #333;
+      font-size: 18px;
+    }
+    
+    .thermal-print-header p {
+      margin: 0;
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .thermal-print-content {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    .thermal-print-footer {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      border-top: 1px solid #ddd;
+    }
+    
+    .thermal-print-instructions {
+      margin-bottom: 15px;
+      padding: 10px;
+      background: #e9f7fe;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    
+    .thermal-print-instructions i {
+      color: #007bff;
+    }
+    
+    .thermal-print-actions {
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    @media print {
+      .thermal-print-content pre {
+        font-size: 12px;
+        line-height: 1.2;
+      }
+      
+      /* Estilos para impressão em papel térmico 80mm */
+      @page {
+        size: 80mm auto;
+        margin: 0;
+      }
+      
+      body {
+        width: 80mm;
+        margin: 0;
+        padding: 0;
+      }
+    }
+    
     /* Responsividade para telas menores */
     @media (max-width: 1200px) {
       .pc-main-content {

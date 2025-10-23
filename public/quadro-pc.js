@@ -469,69 +469,280 @@ function atualizarResumo() {
   elements.preparingOrdersSummary.textContent = statusCounts.preparing;
 }
 
-// Função para imprimir pedido
+// Função para imprimir pedido - versão atualizada para impressoras térmicas
 function imprimirPedido(pedido) {
-  // Verificar se a impressão automática está habilitada
-  const autoPrint = localStorage.getItem('autoPrintEnabled') === 'true';
+  try {
+    // Criar conteúdo da impressão otimizado para impressora térmica 80mm
+    let conteudoImpressao = formatarPedidoParaImpressoraTermica(pedido);
+    
+    // Mostrar preview da impressão em um modal otimizado para térmica
+    mostrarPreviewImpressaoTermica(conteudoImpressao, pedido.id);
+    
+    console.log(`Preview de impressão do pedido #${pedido.id} exibido`);
+  } catch (error) {
+    console.error('Erro ao preparar impressão do pedido:', error);
+  }
+}
+
+// Função para formatar o pedido especificamente para impressoras térmicas 80mm
+function formatarPedidoParaImpressoraTermica(pedido) {
+  // Definir largura máxima para impressora térmica (80mm = ~48 caracteres)
+  const larguraLinha = 48;
   
-  // Se for uma impressão automática e a opção estiver desabilitada, não imprimir
-  if (!autoPrint) {
-    return;
+  // Função auxiliar para centralizar texto
+  function centralizarTexto(texto, largura) {
+    if (texto.length >= largura) return texto.substring(0, largura);
+    const espacos = Math.floor((largura - texto.length) / 2);
+    return ' '.repeat(espacos) + texto;
   }
   
-  try {
-    // Criar conteúdo da impressão
-    let conteudoImpressao = `
-      ================================
-      PEDIDO #${pedido.id}
-      ================================
-      Data: ${new Date(pedido.data).toLocaleString('pt-BR')}
-      
-      CLIENTE:
-      Nome: ${pedido.cliente_nome || 'Não informado'}
-      Telefone: ${pedido.cliente_telefone || 'Não informado'}
-      Endereço: ${pedido.cliente_endereco || 'Não informado'}
-      Pagamento: ${pedido.forma_pagamento || 'Não informado'}
-      
-      ITENS:
-    `;
+  // Função auxiliar para criar linha divisória
+  function linhaDivisoria(caractere = '-') {
+    return caractere.repeat(larguraLinha);
+  }
+  
+  // Função auxiliar para formatar valores monetários
+  function formatarMoeda(valor) {
+    return `R$ ${parseFloat(valor).toFixed(2).replace('.', ',')}`;
+  }
+  
+  // Função auxiliar para truncar texto
+  function truncarTexto(texto, comprimento) {
+    return texto.length > comprimento ? texto.substring(0, comprimento - 3) + '...' : texto;
+  }
+  
+  // Construir conteúdo da impressão
+  let linhas = [];
+  
+  // Cabeçalho
+  linhas.push(centralizarTexto('PEDIDO #' + pedido.id, larguraLinha));
+  linhas.push(linhaDivisoria('='));
+  
+  // Data e hora
+  const data = new Date(pedido.data);
+  linhas.push(`DATA: ${data.toLocaleDateString('pt-BR')}`);
+  linhas.push(`HORA: ${data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`);
+  linhas.push('');
+  
+  // Informações do cliente
+  linhas.push('CLIENTE:');
+  linhas.push(truncarTexto(pedido.cliente_nome || 'NÃO INFORMADO', larguraLinha));
+  if (pedido.cliente_telefone) {
+    linhas.push(`TEL: ${pedido.cliente_telefone}`);
+  }
+  if (pedido.cliente_endereco) {
+    linhas.push(truncarTexto(pedido.cliente_endereco, larguraLinha));
+  }
+  linhas.push(`PAGAMENTO: ${pedido.forma_pagamento || 'NÃO INFORMADO'}`);
+  linhas.push('');
+  
+  // Itens do pedido
+  linhas.push('ITENS:');
+  linhas.push(linhaDivisoria());
+  
+  pedido.itens.forEach(item => {
+    const nomeProduto = truncarTexto(item.produto_nome || item.produto?.nome || 'PRODUTO SEM NOME', 30);
+    const quantidade = item.quantidade || 0;
+    const precoUnitario = formatarMoeda(item.preco_unitario || item.produto?.preco || 0);
+    const precoTotal = formatarMoeda((item.preco_unitario || item.produto?.preco || 0) * quantidade);
     
-    // Adicionar itens do pedido
-    pedido.itens.forEach(item => {
-      const nomeProduto = item.produto_nome || item.produto.nome;
-      const precoTotal = (item.preco_unitario * item.quantidade).toFixed(2).replace('.', ',');
-      conteudoImpressao += `
-      - ${item.quantidade}x ${nomeProduto}
-        R$ ${precoTotal}`;
-    });
-    
-    // Adicionar total
-    conteudoImpressao += `
-      
-      TOTAL: R$ ${pedido.total.toFixed(2).replace('.', ',')}
-      ================================
-    `;
-    
-    // Se estiver em ambiente de desenvolvimento, mostrar no console
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Conteúdo da impressão:', conteudoImpressao);
+    // Linha do item
+    linhas.push(`${quantidade}x ${nomeProduto}`);
+    linhas.push(`    ${precoUnitario} x ${quantidade} = ${precoTotal}`);
+    linhas.push('');
+  });
+  
+  // Total
+  linhas.push(linhaDivisoria('='));
+  linhas.push(centralizarTexto(`TOTAL: ${formatarMoeda(pedido.total)}`, larguraLinha));
+  linhas.push(linhaDivisoria('='));
+  linhas.push('');
+  
+  // Rodapé
+  const agora = new Date();
+  linhas.push(centralizarTexto('OBRIGADO PELA PREFERÊNCIA!', larguraLinha));
+  linhas.push(centralizarTexto(`${agora.getFullYear()}`, larguraLinha));
+  linhas.push('');
+  linhas.push(linhaDivisoria('*'));
+  
+  return linhas.join('\n');
+}
+
+// Função para mostrar preview da impressão otimizado para impressoras térmicas
+function mostrarPreviewImpressaoTermica(conteudo, pedidoId) {
+  // Criar elementos do modal de preview
+  const modal = document.createElement('div');
+  modal.className = 'pc-modal show';
+  modal.id = 'print-preview-modal';
+  modal.style.display = 'block';
+  
+  modal.innerHTML = `
+    <div class="pc-modal-content" style="max-width: 500px;">
+      <div class="pc-modal-header">
+        <h2><i class="fas fa-print"></i> Preview Impressão Térmica - Pedido #${pedidoId}</h2>
+        <button class="pc-close-button" id="close-print-preview">&times;</button>
+      </div>
+      <div class="pc-modal-body" style="padding: 0;">
+        <div class="thermal-print-preview">
+          <div class="thermal-print-header">
+            <h3>Simulação de Cupom Térmico 80mm</h3>
+            <p>Esta é uma prévia de como o pedido será impresso em uma impressora térmica de 80mm</p>
+          </div>
+          <div class="thermal-print-content">
+            <pre style="background: white; color: black; padding: 20px; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.3; white-space: pre; margin: 0; border: 1px dashed #ccc;">${conteudo}</pre>
+          </div>
+          <div class="thermal-print-footer">
+            <div class="thermal-print-instructions">
+              <p><i class="fas fa-info-circle"></i> O cupom será impresso em papel térmico de 80mm com largura de impressão útil de 72mm</p>
+            </div>
+            <div class="thermal-print-actions">
+              <button class="pc-action-btn pc-delete-btn" id="cancel-print">
+                <i class="fas fa-times"></i> Cancelar
+              </button>
+              <button class="pc-action-btn pc-print-btn" id="confirm-print">
+                <i class="fas fa-print"></i> Imprimir
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Adicionar estilos específicos para o preview térmico
+  const style = document.createElement('style');
+  style.textContent = `
+    .thermal-print-preview {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
     }
     
-    // Criar uma janela de impressão
+    .thermal-print-header {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .thermal-print-header h3 {
+      margin: 0 0 10px 0;
+      color: #333;
+      font-size: 18px;
+    }
+    
+    .thermal-print-header p {
+      margin: 0;
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .thermal-print-content {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    .thermal-print-footer {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      border-top: 1px solid #ddd;
+    }
+    
+    .thermal-print-instructions {
+      margin-bottom: 15px;
+      padding: 10px;
+      background: #e9f7fe;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    
+    .thermal-print-instructions i {
+      color: #007bff;
+    }
+    
+    .thermal-print-actions {
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    @media print {
+      .thermal-print-content pre {
+        font-size: 12px;
+        line-height: 1.2;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Adicionar modal ao body
+  document.body.appendChild(modal);
+  document.body.style.overflow = 'hidden';
+  
+  // Adicionar eventos aos botões
+  document.getElementById('close-print-preview').addEventListener('click', () => {
+    document.body.removeChild(modal);
+    document.body.style.overflow = 'auto';
+    if (style.parentNode) {
+      style.parentNode.removeChild(style);
+    }
+  });
+  
+  document.getElementById('cancel-print').addEventListener('click', () => {
+    document.body.removeChild(modal);
+    document.body.style.overflow = 'auto';
+    if (style.parentNode) {
+      style.parentNode.removeChild(style);
+    }
+  });
+  
+  document.getElementById('confirm-print').addEventListener('click', () => {
+    // Remover modal
+    document.body.removeChild(modal);
+    document.body.style.overflow = 'auto';
+    if (style.parentNode) {
+      style.parentNode.removeChild(style);
+    }
+    
+    // Imprimir o conteúdo
+    imprimirConteudoTermico(conteudo);
+  });
+}
+
+// Função para imprimir o conteúdo otimizado para impressoras térmicas
+function imprimirConteudoTermico(conteudo) {
+  try {
+    // Criar uma janela de impressão otimizada para térmica
     const janelaImpressao = window.open('', '_blank');
     janelaImpressao.document.write(`
       <html>
         <head>
-          <title>Impressão do Pedido #${pedido.id}</title>
+          <title>Impressão Térmica - Pedido</title>
           <style>
             body {
               font-family: 'Courier New', monospace;
               font-size: 12px;
+              line-height: 1.3;
+              margin: 0;
+              padding: 0;
+              width: 80mm; /* Largura padrão para impressora térmica 80mm */
+            }
+            pre {
+              margin: 0;
+              padding: 10px;
               white-space: pre;
+              word-wrap: break-word;
+            }
+            @media print {
+              body {
+                width: 80mm;
+                margin: 0;
+                padding: 0;
+              }
             }
           </style>
         </head>
-        <body>${conteudoImpressao}</body>
+        <body>
+          <pre>${conteudo}</pre>
+        </body>
       </html>
     `);
     janelaImpressao.document.close();
@@ -540,12 +751,12 @@ function imprimirPedido(pedido) {
     // Aguardar um momento e imprimir
     setTimeout(() => {
       janelaImpressao.print();
-      janelaImpressao.close();
+      // Não fechamos automaticamente para permitir ao usuário verificar a impressão
+      // janelaImpressao.close();
     }, 500);
-    
-    console.log(`Pedido #${pedido.id} enviado para impressão`);
   } catch (error) {
-    console.error('Erro ao imprimir pedido:', error);
+    console.error('Erro ao imprimir conteúdo térmico:', error);
+    alert('Erro ao imprimir. Verifique se a impressora está configurada corretamente.');
   }
 }
 

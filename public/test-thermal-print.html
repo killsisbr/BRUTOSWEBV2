@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste de Impressão Térmica</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .test-container {
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      border: 1px solid #333;
+    }
+    
+    .test-header {
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #333;
+    }
+    
+    .test-header h1 {
+      color: #27ae60;
+    }
+    
+    .test-button {
+      background: #27ae60;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 12px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 10px 0;
+    }
+    
+    .test-button:hover {
+      background: #219150;
+    }
+    
+    .test-result {
+      background: #2d2d2d;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 15px 0;
+      font-family: 'Courier New', monospace;
+      white-space: pre-wrap;
+    }
+    
+    .success {
+      border-left: 4px solid #27ae60;
+    }
+    
+    .error {
+      border-left: 4px solid #e74c3c;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1><i class="fas fa-print"></i> Teste de Impressão Térmica</h1>
+      <p>Testando o novo sistema de formatação para impressoras térmicas de 80mm</p>
+    </div>
+    
+    <button id="test-simple-order" class="test-button">
+      <i class="fas fa-receipt"></i> Testar Pedido Simples
+    </button>
+    
+    <button id="test-complex-order" class="test-button">
+      <i class="fas fa-receipt"></i> Testar Pedido Complexo
+    </button>
+    
+    <button id="test-print-preview" class="test-button">
+      <i class="fas fa-search"></i> Testar Preview de Impressão
+    </button>
+    
+    <div id="test-results"></div>
+  </div>
+
+  <script>
+    // Função para formatar pedido para impressora térmica (cópia da função do quadro-pc.js)
+    function formatarPedidoParaImpressoraTermica(pedido) {
+      // Definir largura máxima para impressora térmica (80mm = ~48 caracteres)
+      const larguraLinha = 48;
+      
+      // Função auxiliar para centralizar texto
+      function centralizarTexto(texto, largura) {
+        if (texto.length >= largura) return texto.substring(0, largura);
+        const espacos = Math.floor((largura - texto.length) / 2);
+        return ' '.repeat(espacos) + texto;
+      }
+      
+      // Função auxiliar para criar linha divisória
+      function linhaDivisoria(caractere = '-') {
+        return caractere.repeat(larguraLinha);
+      }
+      
+      // Função auxiliar para formatar valores monetários
+      function formatarMoeda(valor) {
+        return `R$ ${parseFloat(valor).toFixed(2).replace('.', ',')}`;
+      }
+      
+      // Função auxiliar para truncar texto
+      function truncarTexto(texto, comprimento) {
+        return texto.length > comprimento ? texto.substring(0, comprimento - 3) + '...' : texto;
+      }
+      
+      // Construir conteúdo da impressão
+      let linhas = [];
+      
+      // Cabeçalho
+      linhas.push(centralizarTexto('PEDIDO #' + pedido.id, larguraLinha));
+      linhas.push(linhaDivisoria('='));
+      
+      // Data e hora
+      const data = new Date(pedido.data);
+      linhas.push(`DATA: ${data.toLocaleDateString('pt-BR')}`);
+      linhas.push(`HORA: ${data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`);
+      linhas.push('');
+      
+      // Informações do cliente
+      linhas.push('CLIENTE:');
+      linhas.push(truncarTexto(pedido.cliente_nome || 'NÃO INFORMADO', larguraLinha));
+      if (pedido.cliente_telefone) {
+        linhas.push(`TEL: ${pedido.cliente_telefone}`);
+      }
+      if (pedido.cliente_endereco) {
+        linhas.push(truncarTexto(pedido.cliente_endereco, larguraLinha));
+      }
+      linhas.push(`PAGAMENTO: ${pedido.forma_pagamento || 'NÃO INFORMADO'}`);
+      linhas.push('');
+      
+      // Itens do pedido
+      linhas.push('ITENS:');
+      linhas.push(linhaDivisoria());
+      
+      pedido.itens.forEach(item => {
+        const nomeProduto = truncarTexto(item.produto_nome || item.produto?.nome || 'PRODUTO SEM NOME', 30);
+        const quantidade = item.quantidade || 0;
+        const precoUnitario = formatarMoeda(item.preco_unitario || item.produto?.preco || 0);
+        const precoTotal = formatarMoeda((item.preco_unitario || item.produto?.preco || 0) * quantidade);
+        
+        // Linha do item
+        linhas.push(`${quantidade}x ${nomeProduto}`);
+        linhas.push(`    ${precoUnitario} x ${quantidade} = ${precoTotal}`);
+        linhas.push('');
+      });
+      
+      // Total
+      linhas.push(linhaDivisoria('='));
+      linhas.push(centralizarTexto(`TOTAL: ${formatarMoeda(pedido.total)}`, larguraLinha));
+      linhas.push(linhaDivisoria('='));
+      linhas.push('');
+      
+      // Rodapé
+      const agora = new Date();
+      linhas.push(centralizarTexto('OBRIGADO PELA PREFERÊNCIA!', larguraLinha));
+      linhas.push(centralizarTexto(`${agora.getFullYear()}`, larguraLinha));
+      linhas.push('');
+      linhas.push(linhaDivisoria('*'));
+      
+      return linhas.join('\n');
+    }
+    
+    // Pedido de teste simples
+    const pedidoSimples = {
+      id: 1001,
+      data: new Date().toISOString(),
+      cliente_nome: 'João Silva',
+      cliente_telefone: '(11) 99999-9999',
+      cliente_endereco: 'Rua das Flores, 123 - Centro',
+      forma_pagamento: 'Cartão de Crédito',
+      total: 29.90,
+      itens: [
+        {
+          produto_nome: 'Hambúrguer Clássico',
+          preco_unitario: 19.90,
+          quantidade: 1
+        },
+        {
+          produto_nome: 'Refrigerante Lata',
+          preco_unitario: 5.00,
+          quantidade: 2
+        }
+      ]
+    };
+    
+    // Pedido de teste complexo
+    const pedidoComplexo = {
+      id: 1002,
+      data: new Date().toISOString(),
+      cliente_nome: 'Maria Santos Oliveira',
+      cliente_telefone: '(21) 98888-8888',
+      cliente_endereco: 'Avenida Brasil, 456 - Sala 102 - Copacabana - Rio de Janeiro/RJ',
+      forma_pagamento: 'Dinheiro',
+      total: 87.50,
+      itens: [
+        {
+          produto_nome: 'Pizza Grande de Calabresa com Borda de Catupiry',
+          preco_unitario: 42.90,
+          quantidade: 1
+        },
+        {
+          produto_nome: 'Lasanha à Bolonhesa',
+          preco_unitario: 29.90,
+          quantidade: 1
+        },
+        {
+          produto_nome: 'Refrigerante 2L',
+          preco_unitario: 12.00,
+          quantidade: 1
+        },
+        {
+          produto_nome: 'Sobremesa Pudim Caseiro',
+          preco_unitario: 8.90,
+          quantidade: 1
+        },
+        {
+          produto_nome: 'Adicional de Queijo',
+          preco_unitario: 3.50,
+          quantidade: 2
+        }
+      ]
+    };
+    
+    // Função para mostrar resultado do teste
+    function mostrarResultado(mensagem, sucesso = true) {
+      const resultadosDiv = document.getElementById('test-results');
+      const resultDiv = document.createElement('div');
+      resultDiv.className = `test-result ${sucesso ? 'success' : 'error'}`;
+      resultDiv.textContent = mensagem;
+      resultadosDiv.appendChild(resultDiv);
+      
+      // Rolar para o resultado
+      resultDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Função para testar formatação
+    function testarFormatacao(pedido, descricao) {
+      try {
+        const resultado = formatarPedidoParaImpressoraTermica(pedido);
+        mostrarResultado(`✓ ${descricao} - Formatação bem-sucedida:\n\n${resultado}`, true);
+        return resultado;
+      } catch (error) {
+        mostrarResultado(`✗ ${descricao} - Erro na formatação: ${error.message}`, false);
+        return null;
+      }
+    }
+    
+    // Função para testar preview (simulando)
+    function testarPreview(pedido) {
+      try {
+        const conteudo = formatarPedidoParaImpressoraTermica(pedido);
+        mostrarResultado(`✓ Preview de impressão gerado com sucesso para pedido #${pedido.id}`, true);
+        
+        // Criar elemento de preview simulado
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'test-result success';
+        previewDiv.innerHTML = `
+          <h3>Preview de Impressão Térmica - Pedido #${pedido.id}</h3>
+          <div style="background: white; color: black; padding: 15px; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.3; white-space: pre; margin: 10px 0; border: 1px dashed #ccc;">${conteudo}</div>
+          <p><i class="fas fa-info-circle"></i> Este é um exemplo de como o pedido será impresso em uma impressora térmica de 80mm</p>
+        `;
+        document.getElementById('test-results').appendChild(previewDiv);
+        
+        return true;
+      } catch (error) {
+        mostrarResultado(`✗ Erro ao gerar preview: ${error.message}`, false);
+        return false;
+      }
+    }
+    
+    // Adicionar eventos aos botões
+    document.getElementById('test-simple-order').addEventListener('click', () => {
+      testarFormatacao(pedidoSimples, 'Pedido Simples');
+    });
+    
+    document.getElementById('test-complex-order').addEventListener('click', () => {
+      testarFormatacao(pedidoComplexo, 'Pedido Complexo');
+    });
+    
+    document.getElementById('test-print-preview').addEventListener('click', () => {
+      testarPreview(pedidoComplexo);
+    });
+    
+    // Mensagem inicial
+    mostrarResultado('Sistema de teste de impressão térmica carregado. Clique nos botões acima para testar as funcionalidades.', true);
+  </script>
+</body>
+</html>

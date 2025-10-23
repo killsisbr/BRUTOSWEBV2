@@ -60,6 +60,7 @@ const elements = {
   paymentMethod: document.getElementById('payment-method'),
   valorPago: document.getElementById('valor-pago'), // Novo elemento para valor pago
   dinheiroSection: document.getElementById('dinheiro-section'), // Seção para dinheiro
+  calcularTaxaBtn: document.getElementById('calcular-taxa-btn'), // Botão para calcular taxa de entrega
   usePreviousAddress: document.getElementById('use-previous-address'),
   previousAddress: document.getElementById('previous-address'),
   previousAddressText: document.getElementById('previousAddressText'),
@@ -101,6 +102,13 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Carregar produtos
   carregarProdutos();
+  
+  // Adicionar evento para o botão de calcular taxa
+  if (elements.calcularTaxaBtn) {
+    elements.calcularTaxaBtn.addEventListener('click', function() {
+      converterEnderecoECalcularEntrega();
+    });
+  }
 });
 
 // Atualizar estado dos botões do carrossel
@@ -750,10 +758,11 @@ function atualizarCarrinho() {
   
   elements.cartTotal.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
   elements.orderTotal.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
-  
-  // Atualizar total com valor da entrega, se disponível
-  if (entregaInfo && entregaInfo.price) {
-    const totalComEntrega = total + entregaInfo.price;
+
+  // Atualizar total com valor da entrega, se disponível (aceita price === 0)
+  const entregaAtual = entregaInfo || (typeof window !== 'undefined' ? window.entregaInfo : null);
+  if (entregaAtual && entregaAtual.price !== null && entregaAtual.price !== undefined) {
+    const totalComEntrega = total + entregaAtual.price;
     elements.cartTotal.textContent = `R$ ${totalComEntrega.toFixed(2).replace('.', ',')}`;
     elements.orderTotal.textContent = `R$ ${totalComEntrega.toFixed(2).replace('.', ',')}`;
   }
@@ -801,16 +810,16 @@ function atualizarResumoPedido() {
     elements.orderItemsSummary.appendChild(li);
   });
   
-  // Adicionar item de entrega no resumo, se disponível
-  if (entregaInfo && entregaInfo.price) {
+  const entregaParaResumo = entregaInfo || (typeof window !== 'undefined' ? window.entregaInfo : null);
+  if (entregaParaResumo && entregaParaResumo.price !== null && entregaParaResumo.price !== undefined) {
     const entregaItem = document.createElement('li');
     entregaItem.className = 'order-item-summary';
     entregaItem.innerHTML = `
       <div>
         <div>Entrega</div>
-        <div>Distância: ${entregaInfo.distance.toFixed(2)} km</div>
+        <div>Distância: ${Number(entregaParaResumo.distance || 0).toFixed(2)} km</div>
       </div>
-      <span>R$ ${entregaInfo.price.toFixed(2).replace('.', ',')}</span>
+      <span>R$ ${Number(entregaParaResumo.price).toFixed(2).replace('.', ',')}</span>
     `;
     elements.orderItemsSummary.appendChild(entregaItem);
   }
@@ -982,13 +991,25 @@ elements.confirmOrderBtn.addEventListener('click', async () => {
     return;
   }
   
+  // Verificar se o valor da entrega foi calculado
+  // Se a entregaInfo.price for 0 (taxa mínima), ainda é considerado válido
+  if (!entregaInfo || entregaInfo.price === null || entregaInfo.price === undefined) {
+    // Verificar também no objeto global window
+    if (window.entregaInfo && (window.entregaInfo.price !== null && window.entregaInfo.price !== undefined)) {
+      entregaInfo = window.entregaInfo;
+    } else {
+      mostrarNotificacao('Por favor, calcule o valor da entrega antes de finalizar o pedido!');
+      return;
+    }
+  }
+  
   // Se já tem endereço salvo e não digitou um novo, usar o salvo
   if (clienteInfo && clienteInfo.endereco && !elements.clientAddress.value) {
     elements.clientAddress.value = clienteInfo.endereco;
   }
   
   // Verificar se o usuário quer usar o endereço anterior
-  if (elements.usePreviousAddress.checked && clienteInfo && clienteInfo.endereco) {
+  if (elements.usePreviousAddress && elements.usePreviousAddress.checked && clienteInfo && clienteInfo.endereco) {
     elements.clientAddress.value = clienteInfo.endereco;
   }
   
@@ -1078,7 +1099,8 @@ function calcularTotalPedido() {
   }, 0);
   
   // Adicionar valor da entrega, se disponível
-  if (entregaInfo && entregaInfo.price) {
+  // Adicionar valor da entrega, se disponível (aceita price === 0)
+  if (entregaInfo && entregaInfo.price !== null && entregaInfo.price !== undefined) {
     return totalItens + entregaInfo.price;
   }
   
@@ -1310,6 +1332,270 @@ function debounce(func, wait) {
     clearTimeout(timeout);
     timeout = setTimeout(later, wait);
   };
+}
+
+// Função para converter endereço em coordenadas e calcular entrega
+async function converterEnderecoECalcularEntrega() {
+  const endereco = elements.clientAddress ? elements.clientAddress.value.trim() : '';
+  
+  if (!endereco) {
+    if (elements.deliveryError) {
+      elements.deliveryError.textContent = 'Por favor, informe seu endereço para calcular o valor da entrega.';
+      elements.deliveryError.style.display = 'block';
+      if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
+    }
+    
+    // Esconder o botão de calcular taxa
+    if (elements.calcularTaxaBtn) {
+      elements.calcularTaxaBtn.style.display = 'none';
+    }
+    
+    return;
+  }
+  
+  // Mostrar mensagem de carregamento
+  if (elements.deliveryError) {
+    elements.deliveryError.textContent = 'Convertendo endereço e calculando entrega...';
+    elements.deliveryError.style.display = 'block';
+    if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
+  }
+  
+  try {
+    // Converter endereço em coordenadas
+    const response = await fetch('/api/entrega/calcular-taxa', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ endereco })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      // Verificar se o endereço está fora de Imbituva
+      if (data.isOutsideImbituva) {
+        // Mostrar mensagem especial para endereços fora de Imbituva
+        if (elements.deliveryError) {
+          elements.deliveryError.innerHTML = `
+            <div style="text-align: center; padding: 10px;">
+              <p><strong>⚠️ não encontrado ⚠️</strong></p>
+              <p>adicionando taxa minima</p>
+              <p><strong>⚠️ Caso de interior envie a localização ⚠️</strong></p>
+            </div>
+          `;
+          elements.deliveryError.style.display = 'block';
+          if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
+        }
+      } else {
+        // Mostrar informações da entrega normalmente
+        if (elements.deliveryInfo && elements.deliveryDistance && elements.deliveryPrice) {
+          elements.deliveryDistance.textContent = data.distance.toFixed(2);
+          elements.deliveryPrice.textContent = data.price.toFixed(2).replace('.', ',');
+          elements.deliveryInfo.style.display = 'block';
+          elements.deliveryError.style.display = 'none';
+        }
+      }
+      
+      // Atualizar informações de entrega
+      entregaInfo = {
+        distance: data.distance,
+        price: data.price,
+        coordinates: data.coordinates
+      };
+      
+      // Salvar coordenadas no elemento hidden
+      if (elements.clientCoordinates) {
+        elements.clientCoordinates.value = JSON.stringify(data.coordinates);
+      }
+      
+      // Atualizar totais com o valor da entrega
+      atualizarCarrinho();
+      
+      // Atualizar informações de entrega no objeto global
+      window.entregaInfo = {
+        distance: data.distance,
+        price: data.price,
+        coordinates: data.coordinates
+      };
+      
+      // Esconder o botão de calcular taxa
+      if (elements.calcularTaxaBtn) {
+        elements.calcularTaxaBtn.style.display = 'none';
+      }
+    } else {
+      if (elements.deliveryError) {
+        elements.deliveryError.textContent = data.error || 'Erro ao calcular taxa de entrega.';
+        elements.deliveryError.style.display = 'block';
+        if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
+      }
+      
+      // Manter o botão visível em caso de erro
+      if (elements.calcularTaxaBtn) {
+        elements.calcularTaxaBtn.style.display = 'block';
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao calcular taxa de entrega:', error);
+    if (elements.deliveryError) {
+      elements.deliveryError.textContent = 'Erro ao processar o endereço. Por favor, tente novamente.';
+      elements.deliveryError.style.display = 'block';
+      if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
+    }
+    
+    // Manter o botão visível em caso de erro
+    if (elements.calcularTaxaBtn) {
+      elements.calcularTaxaBtn.style.display = 'block';
+    }
+  }
+}
+
+// Tratar erros de localização
+function tratarErroLocalizacao(error) {
+  let errorMessage = '';
+  
+  switch (error.code) {
+    case error.PERMISSION_DENIED:
+      errorMessage = 'Permissão para acessar localização negada. Por favor, habilite o acesso à localização nas configurações do seu navegador.';
+      break;
+    case error.POSITION_UNAVAILABLE:
+      errorMessage = 'Informação de localização indisponível. Por favor, tente novamente.';
+      break;
+    case error.TIMEOUT:
+      errorMessage = 'Tempo limite para obter localização esgotado. Por favor, tente novamente.';
+      break;
+    default:
+      errorMessage = 'Erro desconhecido ao obter localização.';
+      break;
+  }
+  
+  if (elements.deliveryError) {
+    elements.deliveryError.textContent = errorMessage;
+    elements.deliveryError.style.display = 'block';
+    elements.deliveryInfo.style.display = 'none';
+  }
+}
+
+// Função para usar a localização do usuário
+function usarLocalizacao() {
+  if (navigator.geolocation) {
+    // Mostrar mensagem de carregamento
+    if (elements.deliveryError) {
+      elements.deliveryError.textContent = 'Obtendo sua localização...';
+      elements.deliveryError.style.display = 'block';
+      elements.deliveryInfo.style.display = 'none';
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        
+        // Abrir mapa de pré-visualização com a localização obtida
+        if (typeof window.Mapa !== 'undefined' && typeof window.Mapa.openMapModal === 'function') {
+          window.Mapa.openMapModal(latitude, longitude);
+        } else {
+          console.error('Função Mapa.openMapModal não encontrada');
+          // Fallback: calcular entrega diretamente
+          calcularEntrega(latitude, longitude);
+        }
+      },
+      error => {
+        tratarErroLocalizacao(error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+  } else {
+    if (elements.deliveryError) {
+      elements.deliveryError.textContent = 'Geolocalização não é suportada pelo seu navegador.';
+      elements.deliveryError.style.display = 'block';
+    }
+  }
+}
+
+// Calcular valor da entrega
+async function calcularEntrega(latitude, longitude) {
+  try {
+    const response = await fetch('/api/entrega/calcular', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ latitude, longitude })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      if (data.error) {
+        // Fora da área de entrega
+        if (elements.deliveryError) {
+          elements.deliveryError.textContent = data.error;
+          elements.deliveryError.style.display = 'block';
+          elements.deliveryInfo.style.display = 'none';
+        }
+        
+        // Atualizar informações de entrega no objeto global mesmo quando há erro
+        // Isso é importante para que o sistema reconheça que a entrega foi calculada
+        window.entregaInfo = {
+          distance: data.distance || 0,
+          price: data.price || 0,
+          coordinates: { lat: latitude, lng: longitude }
+        };
+      } else {
+        // Entrega válida
+        entregaInfo = {
+          distance: data.distance,
+          price: data.price,
+          coordinates: { lat: latitude, lng: longitude }
+        };
+        
+        if (elements.deliveryInfo) {
+          elements.deliveryDistance.textContent = data.distance.toFixed(2);
+          elements.deliveryPrice.textContent = data.price.toFixed(2).replace('.', ',');
+          elements.deliveryInfo.style.display = 'block';
+          elements.deliveryError.style.display = 'none';
+        }
+        
+        // Salvar coordenadas no elemento hidden
+        if (elements.clientCoordinates) {
+          elements.clientCoordinates.value = JSON.stringify({ lat: latitude, lng: longitude });
+        }
+        
+        // Atualizar totais com o valor da entrega
+        atualizarCarrinho();
+        
+        // Atualizar informações de entrega no objeto global
+        window.entregaInfo = {
+          distance: data.distance,
+          price: data.price,
+          coordinates: { lat: latitude, lng: longitude }
+        };
+        
+        // Esconder o botão de calcular taxa
+        if (elements.calcularTaxaBtn) {
+          elements.calcularTaxaBtn.style.display = 'none';
+        }
+      }
+    } else {
+      if (elements.deliveryError) {
+        elements.deliveryError.textContent = data.error || 'Erro ao calcular entrega.';
+        elements.deliveryError.style.display = 'block';
+        elements.deliveryInfo.style.display = 'none';
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao calcular entrega:', error);
+    if (elements.deliveryError) {
+      elements.deliveryError.textContent = 'Erro ao calcular valor da entrega. Por favor, tente novamente.';
+      elements.deliveryError.style.display = 'block';
+      elements.deliveryInfo.style.display = 'none';
+    }
+  }
 }
 
 // Inicializar a aplicação
@@ -1578,128 +1864,6 @@ function handleTouchEndCart(e) {
 }
 
 // Função para processar o gesto de swipe para cima (removida)
-
-// Função para usar a localização do usuário
-function usarLocalizacao() {
-  if (navigator.geolocation) {
-    // Mostrar mensagem de carregamento
-    if (elements.deliveryError) {
-      elements.deliveryError.textContent = 'Obtendo sua localização...';
-      elements.deliveryError.style.display = 'block';
-      elements.deliveryInfo.style.display = 'none';
-    }
-    
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        
-        // Calcular entrega com as coordenadas obtidas
-        calcularEntrega(latitude, longitude);
-      },
-      error => {
-        tratarErroLocalizacao(error);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000
-      }
-    );
-  } else {
-    if (elements.deliveryError) {
-      elements.deliveryError.textContent = 'Geolocalização não é suportada pelo seu navegador.';
-      elements.deliveryError.style.display = 'block';
-    }
-  }
-}
-
-// Calcular valor da entrega
-async function calcularEntrega(latitude, longitude) {
-  try {
-    const response = await fetch('/api/entrega/calcular', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ latitude, longitude })
-    });
-    
-    const data = await response.json();
-    
-    if (data.success) {
-      if (data.error) {
-        // Fora da área de entrega
-        if (elements.deliveryError) {
-          elements.deliveryError.textContent = data.error;
-          elements.deliveryError.style.display = 'block';
-          elements.deliveryInfo.style.display = 'none';
-        }
-      } else {
-        // Entrega válida
-        entregaInfo = {
-          distance: data.distance,
-          price: data.price,
-          coordinates: { lat: latitude, lng: longitude }
-        };
-        
-        if (elements.deliveryInfo) {
-          elements.deliveryDistance.textContent = data.distance.toFixed(2);
-          elements.deliveryPrice.textContent = data.price.toFixed(2).replace('.', ',');
-          elements.deliveryInfo.style.display = 'block';
-          elements.deliveryError.style.display = 'none';
-        }
-        
-        // Salvar coordenadas no elemento hidden
-        if (elements.clientCoordinates) {
-          elements.clientCoordinates.value = JSON.stringify({ lat: latitude, lng: longitude });
-        }
-        
-        // Atualizar totais com o valor da entrega
-        atualizarCarrinho();
-      }
-    } else {
-      if (elements.deliveryError) {
-        elements.deliveryError.textContent = data.error || 'Erro ao calcular entrega.';
-        elements.deliveryError.style.display = 'block';
-        elements.deliveryInfo.style.display = 'none';
-      }
-    }
-  } catch (error) {
-    console.error('Erro ao calcular entrega:', error);
-    if (elements.deliveryError) {
-      elements.deliveryError.textContent = 'Erro ao calcular valor da entrega. Por favor, tente novamente.';
-      elements.deliveryError.style.display = 'block';
-      elements.deliveryInfo.style.display = 'none';
-    }
-  }
-}
-
-// Tratar erros de localização
-function tratarErroLocalizacao(error) {
-  let errorMessage = '';
-  
-  switch (error.code) {
-    case error.PERMISSION_DENIED:
-      errorMessage = 'Permissão para acessar localização negada. Por favor, habilite o acesso à localização nas configurações do seu navegador.';
-      break;
-    case error.POSITION_UNAVAILABLE:
-      errorMessage = 'Informação de localização indisponível. Por favor, tente novamente.';
-      break;
-    case error.TIMEOUT:
-      errorMessage = 'Tempo limite para obter localização esgotado. Por favor, tente novamente.';
-      break;
-    default:
-      errorMessage = 'Erro desconhecido ao obter localização.';
-      break;
-  }
-  
-  if (elements.deliveryError) {
-    elements.deliveryError.textContent = errorMessage;
-    elements.deliveryError.style.display = 'block';
-    elements.deliveryInfo.style.display = 'none';
-  }
-}
 
 // Atualizar estado dos botões do carrossel
 function atualizarEstadoBotoes() {

@@ -181,6 +181,23 @@ Após finalizar seu pedido no site, você receberá um resumo aqui no WhatsApp!`
       itemsList += `• ${item.quantidade}x ${item.produto.nome} - R$ ${itemTotal.toFixed(2).replace('.', ',')}\n`;
     });
     
+    // Se o telefone não veio no payload, tentar obtê-lo a partir do whatsappId ou do chat
+    try {
+      if ((!orderData.cliente || !orderData.cliente.telefone) && chat && chat.id) {
+        // Tentar várias fontes onde o número pode estar presente
+        const possible = (orderData.cliente && (orderData.cliente.whatsappId || orderData.cliente.whatsapp)) || chat.id._serialized;
+        if (possible) {
+          const digits = String(possible).replace(/\D/g, '');
+          if (digits.length > 0) {
+            orderData.cliente = orderData.cliente || {};
+            orderData.cliente.telefone = digits;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Falha ao auto-preencher telefone do cliente:', err.message);
+    }
+
     // Adicionar valor da entrega ao total, se disponível
     let deliveryInfo = '';
     if (orderData.entrega && orderData.entrega.price) {
@@ -190,11 +207,10 @@ Após finalizar seu pedido no site, você receberá um resumo aqui no WhatsApp!`
         total += deliveryValue;
       }
     }
-    
+    //Link para acompanhar seu pedido: https://brutusburger.online/pedido/${orderData.pedidoId}
     const summaryMessage = `✅ *Pedido Confirmado!*
     
 Número do pedido: *#${orderData.pedidoId}*
-Link para acompanhar seu pedido: https://brutusburger.online/pedido/${orderData.pedidoId}
     
 Itens:
 ${itemsList}${deliveryInfo}*Total: R$ ${total.toFixed(2).replace('.', ',')}*
@@ -280,11 +296,25 @@ ${statusMessages[status] || 'Seu pedido foi atualizado!'}`;
       }
       
       // Criar link para o WhatsApp do cliente
+      // Garantir que temos um telefone válido (tentar preencher a partir do whatsappId/chat se necessário)
+      try {
+        if ((!orderData.cliente || !orderData.cliente.telefone) && groupChat) {
+          const possible = (orderData.cliente && (orderData.cliente.whatsappId || orderData.cliente.whatsapp)) || (groupChat.id && groupChat.id._serialized);
+          if (possible) {
+            const digits = String(possible).replace(/\D/g, '');
+            orderData.cliente = orderData.cliente || {};
+            orderData.cliente.telefone = digits;
+          }
+        }
+      } catch (err) {
+        console.warn('Falha ao auto-preencher telefone ao enviar para grupo:', err && err.message);
+      }
+
       let clientWhatsAppLink = '';
-      if (orderData.cliente.telefone) {
+      if (orderData.cliente && orderData.cliente.telefone) {
         // Remover caracteres não numéricos do telefone
-        const cleanPhone = orderData.cliente.telefone.replace(/\D/g, '');
-        clientWhatsAppLink = `📱 *WhatsApp do Cliente*: https://wa.me/${cleanPhone}\n`;
+        const cleanPhone = String(orderData.cliente.telefone).replace(/\D/g, '');
+        if (cleanPhone.length > 0) clientWhatsAppLink = `📱 *WhatsApp do Cliente*: https://wa.me/${cleanPhone}\n`;
       }
       
       // Montar a mensagem para o grupo

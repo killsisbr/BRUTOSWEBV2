@@ -546,9 +546,10 @@ function atualizarCarrinho() {
     return sum + precoProduto + precoAdicionais;
   }, 0);
   
-  // Adicionar valor da entrega, se disponível
-  if (entregaInfo && entregaInfo.price) {
-    total += entregaInfo.price;
+  // Adicionar valor da entrega, se disponível (aceita price === 0)
+  const entregaAtual = entregaInfo || (typeof window !== 'undefined' ? window.entregaInfo : null);
+  if (entregaAtual && entregaAtual.price !== null && entregaAtual.price !== undefined) {
+    total += entregaAtual.price;
   }
   
   elements.cartTotal.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
@@ -597,16 +598,16 @@ function atualizarResumoPedido() {
     elements.orderItemsSummary.appendChild(li);
   });
   
-  // Adicionar item de entrega no resumo, se disponível
-  if (entregaInfo && entregaInfo.price) {
+  const entregaParaResumo = entregaInfo || (typeof window !== 'undefined' ? window.entregaInfo : null);
+  if (entregaParaResumo && entregaParaResumo.price !== null && entregaParaResumo.price !== undefined) {
     const entregaItem = document.createElement('li');
     entregaItem.className = 'order-item-summary';
     entregaItem.innerHTML = `
       <div>
         <div>Entrega</div>
-        <div>Distância: ${entregaInfo.distance.toFixed(2)} km</div>
+        <div>Distância: ${Number(entregaParaResumo.distance || 0).toFixed(2)} km</div>
       </div>
-      <span>R$ ${entregaInfo.price.toFixed(2).replace('.', ',')}</span>
+      <span>R$ ${Number(entregaParaResumo.price).toFixed(2).replace('.', ',')}</span>
     `;
     elements.orderItemsSummary.appendChild(entregaItem);
   }
@@ -627,8 +628,14 @@ function usarLocalizacao() {
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
         
-        // Calcular entrega com as coordenadas obtidas
-        calcularEntrega(latitude, longitude);
+        // Abrir mapa de pré-visualização com a localização obtida
+        if (typeof window.Mapa !== 'undefined' && typeof window.Mapa.openMapModal === 'function') {
+          window.Mapa.openMapModal(latitude, longitude);
+        } else {
+          console.error('Função Mapa.openMapModal não encontrada');
+          // Fallback: calcular entrega diretamente
+          calcularEntrega(latitude, longitude);
+        }
       },
       error => {
         tratarErroLocalizacao(error);
@@ -980,7 +987,8 @@ function calcularTotalPedido() {
   }, 0);
   
   // Adicionar valor da entrega, se disponível
-  if (entregaInfo && entregaInfo.price) {
+  // Adicionar valor da entrega, se disponível (aceita price === 0)
+  if (entregaInfo && entregaInfo.price !== null && entregaInfo.price !== undefined) {
     return totalItens + entregaInfo.price;
   }
   

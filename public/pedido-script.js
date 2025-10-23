@@ -60,6 +60,7 @@ const elements = {
   paymentMethod: document.getElementById('payment-method'),
   valorPago: document.getElementById('valor-pago'), // Novo elemento para valor pago
   dinheiroSection: document.getElementById('dinheiro-section'), // Seção para dinheiro
+  calcularTaxaBtn: document.getElementById('calcular-taxa-btn'), // Botão para calcular taxa de entrega
   usePreviousAddress: document.getElementById('use-previous-address'),
   previousAddress: document.getElementById('previous-address'),
   previousAddressText: document.getElementById('previousAddressText'),
@@ -101,6 +102,13 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Carregar produtos
   carregarProdutos();
+  
+  // Adicionar evento para o botão de calcular taxa
+  if (elements.calcularTaxaBtn) {
+    elements.calcularTaxaBtn.addEventListener('click', function() {
+      converterEnderecoECalcularEntrega();
+    });
+  }
 });
 
 // Atualizar estado dos botões do carrossel
@@ -741,15 +749,15 @@ function atualizarCarrinho() {
     return sum + precoProduto + precoAdicionais;
   }, 0);
   
-  elements.cartTotal.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
-  elements.orderTotal.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
-  
   // Atualizar total com valor da entrega, se disponível
-  if (entregaInfo && entregaInfo.price) {
-    const totalComEntrega = total + entregaInfo.price;
-    elements.cartTotal.textContent = `R$ ${totalComEntrega.toFixed(2).replace('.', ',')}`;
-    elements.orderTotal.textContent = `R$ ${totalComEntrega.toFixed(2).replace('.', ',')}`;
+  let totalComEntrega = total;
+  const entregaAtual = entregaInfo || (typeof window !== 'undefined' ? window.entregaInfo : null);
+  if (entregaAtual && entregaAtual.price !== null && entregaAtual.price !== undefined) {
+    totalComEntrega = total + entregaAtual.price;
   }
+  
+  elements.cartTotal.textContent = `R$ ${totalComEntrega.toFixed(2).replace('.', ',')}`;
+  elements.orderTotal.textContent = `R$ ${totalComEntrega.toFixed(2).replace('.', ',')}`;
   
   // Atualizar resumo do pedido
   atualizarResumoPedido();
@@ -772,7 +780,9 @@ function atualizarResumoPedido() {
     // Adicionar adicionais se existirem
     if (item.adicionais && item.adicionais.length > 0) {
       const adicionaisText = item.adicionais.map(a => a.nome).join(', ');
-      itemHTML += `<div class="order-item-additionals">Adicionais: ${adicionaisText}</div>`;
+      // Calcular o valor total dos adicionais
+      const valorAdicionais = item.adicionais.reduce((acc, adicional) => acc + adicional.preco, 0) * item.quantidade;
+      itemHTML += `<div class="order-item-additionals">Adicionais: ${adicionaisText} (R$ ${valorAdicionais.toFixed(2).replace('.', ',')})</div>`;
     }
     
     // Adicionar observação se existir
@@ -794,16 +804,17 @@ function atualizarResumoPedido() {
     elements.orderItemsSummary.appendChild(li);
   });
   
-  // Adicionar item de entrega no resumo, se disponível
-  if (entregaInfo && entregaInfo.price) {
+  // Adicionar item de entrega no resumo, se disponível (aceita price === 0)
+  const entregaParaResumo = entregaInfo || (typeof window !== 'undefined' ? window.entregaInfo : null);
+  if (entregaParaResumo && entregaParaResumo.price !== null && entregaParaResumo.price !== undefined) {
     const entregaItem = document.createElement('li');
     entregaItem.className = 'order-item-summary';
     entregaItem.innerHTML = `
       <div>
         <div>Entrega</div>
-        <div>Distância: ${entregaInfo.distance.toFixed(2)} km</div>
+        <div>Distância: ${Number(entregaParaResumo.distance || 0).toFixed(2)} km</div>
       </div>
-      <span>R$ ${entregaInfo.price.toFixed(2).replace('.', ',')}</span>
+      <span>R$ ${Number(entregaParaResumo.price).toFixed(2).replace('.', ',')}</span>
     `;
     elements.orderItemsSummary.appendChild(entregaItem);
   }
@@ -869,8 +880,6 @@ function getPlaceholderSVG(width, height, text = '') {
   
   return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}' viewBox='0 0 ${width} ${height}'%3E%3Crect width='100%25' height='100%25' fill='%23ddd'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial, sans-serif' font-size='${Math.min(width, height) / 8}' fill='%23666'%3E${encodedText}%3C/text%3E%3C/svg%3E`;
 }
-
-// Carregar informações do cliente via WhatsApp ID
 async function carregarClienteInfo() {
   if (!whatsappId) return;
   
@@ -975,13 +984,25 @@ elements.confirmOrderBtn.addEventListener('click', async () => {
     return;
   }
   
+  // Verificar se o valor da entrega foi calculado
+  // Se a entregaInfo.price for 0 (taxa mínima), ainda é considerado válido
+  if (!entregaInfo || entregaInfo.price === null || entregaInfo.price === undefined) {
+    // Verificar também no objeto global window
+    if (window.entregaInfo && (window.entregaInfo.price !== null && window.entregaInfo.price !== undefined)) {
+      entregaInfo = window.entregaInfo;
+    } else {
+      mostrarNotificacao('Por favor, calcule o valor da entrega antes de finalizar o pedido!');
+      return;
+    }
+  }
+  
   // Se já tem endereço salvo e não digitou um novo, usar o salvo
   if (clienteInfo && clienteInfo.endereco && !elements.clientAddress.value) {
     elements.clientAddress.value = clienteInfo.endereco;
   }
   
   // Verificar se o usuário quer usar o endereço anterior
-  if (elements.usePreviousAddress.checked && clienteInfo && clienteInfo.endereco) {
+  if (elements.usePreviousAddress && elements.usePreviousAddress.checked && clienteInfo && clienteInfo.endereco) {
     elements.clientAddress.value = clienteInfo.endereco;
   }
   
@@ -1070,8 +1091,8 @@ function calcularTotalPedido() {
     return sum + precoProduto + precoAdicionais;
   }, 0);
   
-  // Adicionar valor da entrega, se disponível
-  if (entregaInfo && entregaInfo.price) {
+  // Adicionar valor da entrega, se disponível (aceita price === 0)
+  if (entregaInfo && entregaInfo.price !== null && entregaInfo.price !== undefined) {
     return totalItens + entregaInfo.price;
   }
   
@@ -1081,34 +1102,6 @@ function calcularTotalPedido() {
 elements.newOrderBtn.addEventListener('click', () => {
   fecharModal(elements.confirmationModal);
 });
-
-// Controles do seletor de categorias
-if (elements.categoryLanchesBtn) {
-  elements.categoryLanchesBtn.addEventListener('click', () => {
-    console.log('Botão de lanches clicado');
-    mudarCategoria('lanches');
-  });
-} else {
-  console.error('Botão de lanches não encontrado');
-}
-
-if (elements.categoryBebidasBtn) {
-  elements.categoryBebidasBtn.addEventListener('click', () => {
-    console.log('Botão de bebidas clicado');
-    mudarCategoria('bebidas');
-  });
-} else {
-  console.error('Botão de bebidas não encontrado');
-}
-
-if (elements.categoryPorcoesBtn) {
-  elements.categoryPorcoesBtn.addEventListener('click', () => {
-    console.log('Botão de porções clicado');
-    mudarCategoria('porcoes');
-  });
-} else {
-  console.error('Botão de porções não encontrado');
-}
 
 // Controles do carrossel
 if (elements.prevProductBtn) {
@@ -1587,164 +1580,30 @@ function usarLocalizacao() {
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
         
-        // Calcular entrega com as coordenadas obtidas
-// Função para carregar produtos
-async function carregarProdutos() {
-  try {
-    console.log('Iniciando carregamento de produtos...');
-    const res = await fetch('/api/produtos');
-    console.log('Response status:', res.status);
-    console.log('Response headers:', [...res.headers.entries()]);
-    
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
+        // Abrir mapa de pré-visualização com a localização obtida
+        if (typeof window.Mapa !== 'undefined' && typeof window.Mapa.openMapModal === 'function') {
+          window.Mapa.openMapModal(latitude, longitude);
+        } else {
+          console.error('Função Mapa.openMapModal não encontrada');
+          // Fallback: calcular entrega diretamente
+          calcularEntrega(latitude, longitude);
+        }
+      },
+      error => {
+        tratarErroLocalizacao(error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+  } else {
+    if (elements.deliveryError) {
+      elements.deliveryError.textContent = 'Geolocalização não é suportada pelo seu navegador.';
+      elements.deliveryError.style.display = 'block';
     }
-    
-    const rawData = await res.text();
-    console.log('Raw data received:', rawData);
-    
-    // Tentar parsear como JSON
-    try {
-      produtos = JSON.parse(rawData);
-      console.log('Produtos carregados com sucesso:', produtos);
-    } catch (parseError) {
-      console.error('Erro ao parsear JSON:', parseError);
-      console.error('Dados recebidos:', rawData);
-      return;
-    }
-    
-    // Verificar se produtos foram carregados corretamente
-    if (!produtos || produtos.length === 0) {
-      console.error('Nenhum produto encontrado ou erro no carregamento');
-      return;
-    }
-    
-    console.log('Total de produtos carregados:', produtos.length);
-    
-    // Verificar as imagens dos produtos
-    produtos.forEach((produto, index) => {
-      console.log(`Produto ${index + 1}:`, {
-        id: produto.id,
-        nome: produto.nome,
-        imagem: produto.imagem,
-        hasImagem: !!produto.imagem,
-        imagemType: typeof produto.imagem
-      });
-    });
-    
-    // Organizar produtos por categoria
-    organizarProdutosPorCategoria();
-    
-    // Inicializar carrossel
-    atualizarCarrossel();
-  } catch (error) {
-    console.error('Erro ao carregar produtos:', error);
-    console.error('Stack trace:', error.stack);
   }
-}
-
-// Função para organizar produtos por categoria
-function organizarProdutosPorCategoria() {
-  console.log('Iniciando organização de produtos por categoria...');
-  console.log('Produtos totais recebidos:', produtos);
-  
-  // Verificar se produtos existem
-  if (!produtos || produtos.length === 0) {
-    console.error('Nenhum produto para organizar');
-    return;
-  }
-  
-  console.log('Número total de produtos:', produtos.length);
-  
-  // Limpar categorias antes de reorganizar
-  produtosPorCategoria = {
-    lanches: [],
-    bebidas: [],
-    porcoes: [],
-    adicionais: []
-  };
-  
-  console.log('Categorias limpas, iniciando filtragem...');
-  
-  // Filtrar produtos por categoria
-  produtos.forEach((produto, index) => {
-    console.log(`Processando produto ${index + 1}:`, produto);
-    console.log(`Categoria do produto ${index + 1}:`, produto.categoria);
-    
-    if (produto.categoria) {
-      // Verificar se é um lanche
-      if (produto.categoria.includes('Lanche') || 
-          produto.categoria.includes('Lanches') || 
-          produto.categoria.includes('Hambúrguer') || 
-          produto.categoria.includes('Burger') ||
-          produto.categoria.includes('Lanches Especiais') ||
-          produto.categoria.includes('Lanches Tradicionais') ||
-          produto.categoria.includes('Especiais') ||
-          produto.categoria.includes('Tradicionais')) {
-        produtosPorCategoria.lanches.push(produto);
-        console.log('Produto adicionado aos lanches');
-      }
-      // Verificar se é uma bebida
-      else if (produto.categoria.includes('Bebida') || 
-               produto.categoria.includes('Bebidas') || 
-               produto.categoria.includes('Refrigerante') || 
-               produto.categoria.includes('Suco') ||
-               produto.categoria.includes('Coca') ||
-               produto.categoria.includes('Guaraná')) {
-        produtosPorCategoria.bebidas.push(produto);
-        console.log('Produto adicionado às bebidas');
-      }
-      // Verificar se é uma porção
-      else if (produto.categoria.includes('Porção') || 
-               produto.categoria.includes('Porções') || 
-               produto.categoria.includes('Porcao') || 
-               produto.categoria.includes('Porcoes') ||
-               produto.categoria.includes('Batata') ||
-               produto.categoria.includes('Onion') ||
-               produto.categoria.includes('Calabresa')) {
-        produtosPorCategoria.porcoes.push(produto);
-        console.log('Produto adicionado às porções');
-      }
-      // Verificar se é um adicional
-      else if (produto.categoria.includes('Adicional') || 
-               produto.categoria.includes('Adicionais') || 
-               produto.categoria.includes('Extra') ||
-               produto.categoria.includes('Queijo') ||
-               produto.categoria.includes('Bacon') ||
-               produto.categoria.includes('Catupiry') ||
-               produto.categoria.includes('Molho') ||
-               produto.categoria.includes('Hambúrguer')) {
-        produtosPorCategoria.adicionais.push(produto);
-        console.log('Produto adicionado aos adicionais');
-      }
-      // Se não se encaixar em nenhuma categoria específica, adicionar aos lanches por padrão
-      else {
-        produtosPorCategoria.lanches.push(produto);
-        console.log('Produto adicionado aos lanches (categoria padrão)');
-      }
-    } else {
-      // Se não tiver categoria definida, adicionar aos lanches por padrão
-      produtosPorCategoria.lanches.push(produto);
-      console.log('Produto adicionado aos lanches (sem categoria definida)');
-    }
-  });
-  
-  console.log('Organização concluída. Produtos por categoria:', produtosPorCategoria);
-  
-  // Verificar se há produtos em cada categoria
-  Object.keys(produtosPorCategoria).forEach(categoria => {
-    console.log(`Categoria ${categoria}: ${produtosPorCategoria[categoria].length} produtos`);
-    
-    // Verificar as imagens dos produtos em cada categoria
-    produtosPorCategoria[categoria].forEach((produto, index) => {
-      console.log(`Produto na categoria ${categoria} ${index + 1}:`, {
-        id: produto.id,
-        nome: produto.nome,
-        imagem: produto.imagem,
-        hasImagem: !!produto.imagem
-      });
-    });
-  });
 }
 
 // Atualizar carrossel com base na categoria selecionada
@@ -1852,7 +1711,9 @@ async function calcularEntrega(latitude, longitude) {
     
     // Exibir taxa de entrega
     if (elements.deliveryInfo) {
-      elements.deliveryInfo.textContent = `Taxa de entrega: R$ ${taxaEntrega.toFixed(2)}`;
+      // Preencher campos separados (distância pode não estar disponível nesta rota)
+      if (elements.deliveryPrice) elements.deliveryPrice.textContent = taxaEntrega.toFixed(2).replace('.', ',');
+      if (elements.deliveryDistance) elements.deliveryDistance.textContent = (0).toFixed(2);
       elements.deliveryInfo.style.display = 'block';
       elements.deliveryError.style.display = 'none';
     }
@@ -1862,6 +1723,21 @@ async function calcularEntrega(latitude, longitude) {
     if (calcularTaxaBtn) {
       calcularTaxaBtn.style.display = 'block';
     }
+    
+    // Atualizar totais com o valor da entrega
+    atualizarCarrinho();
+    // Garantir que o resumo do pedido também seja atualizado
+    atualizarResumoPedido();
+    
+    // Definir entregaInfo para que o checkout reconheça a taxa calculada
+    entregaInfo = {
+      distance: 0,
+      price: taxaEntrega,
+      coordinates: { lat: latitude, lng: longitude }
+    };
+
+    // Atualizar objeto global também
+    window.entregaInfo = Object.assign({}, entregaInfo);
   } catch (error) {
     console.error('Erro ao calcular taxa de entrega:', error);
     console.error('Stack trace:', error.stack);
@@ -1874,9 +1750,8 @@ async function calcularEntrega(latitude, longitude) {
     }
     
     // Esconder o botão de calcular taxa
-    const calcularTaxaBtn = document.getElementById('calcular-taxa-btn');
-    if (calcularTaxaBtn) {
-      calcularTaxaBtn.style.display = 'none';
+    if (elements.calcularTaxaBtn) {
+      elements.calcularTaxaBtn.style.display = 'none';
     }
   }
 }
@@ -1923,30 +1798,16 @@ function calcularTaxaLocalizacao() {
 async function converterEnderecoECalcularEntrega() {
   const endereco = elements.clientAddress.value.trim();
   
-  console.log('Calculando taxa para o endereço:', endereco);
-  console.log('Tipo do endereço:', typeof endereco);
-  console.log('Comprimento do endereço:', endereco.length);
-  
-  // Verificar se há caracteres especiais
-  for (let i = 0; i < endereco.length; i++) {
-    const char = endereco.charCodeAt(i);
-    console.log(`Caractere ${i}: '${endereco[i]}' (código: ${char})`);
-    if (char < 32 || char > 126) {
-      console.warn(`Caractere especial encontrado na posição ${i}: código ${char}`);
-    }
-  }
-  
   if (!endereco) {
     if (elements.deliveryError) {
       elements.deliveryError.textContent = 'Por favor, informe seu endereço para calcular o valor da entrega.';
       elements.deliveryError.style.display = 'block';
-      elements.deliveryInfo.style.display = 'none';
+      if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
     }
     
     // Esconder o botão de calcular taxa
-    const calcularTaxaBtn = document.getElementById('calcular-taxa-btn');
-    if (calcularTaxaBtn) {
-      calcularTaxaBtn.style.display = 'none';
+    if (elements.calcularTaxaBtn) {
+      elements.calcularTaxaBtn.style.display = 'none';
     }
     
     return;
@@ -1956,116 +1817,20 @@ async function converterEnderecoECalcularEntrega() {
   if (elements.deliveryError) {
     elements.deliveryError.textContent = 'Convertendo endereço e calculando entrega...';
     elements.deliveryError.style.display = 'block';
-    elements.deliveryInfo.style.display = 'none';
+    if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
   }
   
   try {
     // Converter endereço em coordenadas
-    console.log('Enviando requisição para calcular taxa de entrega');
-    console.log('Endereço a ser enviado:', endereco);
-    
-    // Verificar se o endereço é uma string válida
-    if (typeof endereco !== 'string' || endereco.length === 0) {
-      console.error('Endereço inválido:', endereco);
-      throw new Error('Endereço inválido');
-    }
-    
-    // Verificar se o JSON é válido
-    const requestBody = JSON.stringify({ endereco });
-    console.log('JSON a ser enviado:', requestBody);
-    
-    // Tentar parsear o JSON para verificar se é válido
-    try {
-      const parsed = JSON.parse(requestBody);
-      console.log('JSON parseado com sucesso:', parsed);
-    } catch (parseError) {
-      console.error('Erro ao parsear JSON:', parseError);
-      throw new Error('JSON inválido');
-    }
-    
-    // Verificar se há caracteres de controle ou inválidos
-    for (let i = 0; i < requestBody.length; i++) {
-      const charCode = requestBody.charCodeAt(i);
-      if (charCode < 32 && charCode !== 9 && charCode !== 10 && charCode !== 13) { // Permitir tab, newline e carriage return
-        console.error(`Caractere de controle inválido encontrado na posição ${i}: código ${charCode}`);
-        throw new Error('JSON contém caracteres de controle inválidos');
-      }
-    }
-    
-    // Verificar se há aspas duplas não escapadas
-    const aspasDuplas = (requestBody.match(/"/g) || []).length;
-    const aspasEscapadas = (requestBody.match(/\"/g) || []).length;
-    console.log(`Aspas duplas: ${aspasDuplas}, Aspas escapadas: ${aspasEscapadas}`);
-    
-    if (aspasDuplas - aspasEscapadas * 2 !== 2) {
-      console.warn('Possível problema com aspas no JSON');
-    }
-    
-    // Verificar se há caracteres Unicode problemáticos
-    try {
-      const encoder = new TextEncoder();
-      const encoded = encoder.encode(requestBody);
-      console.log('Bytes do JSON:', Array.from(encoded));
-    } catch (encodeError) {
-      console.error('Erro ao codificar JSON:', encodeError);
-    }
-    
-    // Verificar se há problemas com a codificação do endereço
-
-    try {
-      const decodedEndereco = decodeURIComponent(encodeURIComponent(endereco));
-      console.log('Endereço decodificado:', decodedEndereco);
-    } catch (decodeError) {
-      console.error('Erro ao decodificar endereço:', decodeError);
-      // Tentar limpar caracteres problemáticos
-      const enderecoLimpo = endereco.replace(/[^\x20-\x7E]/g, '');
-      console.log('Endereço limpo:', enderecoLimpo);
-      if (enderecoLimpo !== endereco) {
-        console.warn('Endereço original continha caracteres inválidos');
-        // Usar o endereço limpo
-        endereco = enderecoLimpo;
-      }
-    }
-    
-    // Verificar se há problemas com a requisição
-    console.log('Headers da requisição:', {
-      'Content-Type': 'application/json'
-    });
-    
-    // Verificar se há problemas com a requisição fetch
-    console.log('URL da requisição:', '/api/entrega/calcular-taxa');
-    console.log('Método da requisição:', 'POST');
-    
-    // Verificar se há problemas com a URL
-    const url = '/api/entrega/calcular-taxa';
-    console.log('URL completa:', url);
-    
-    // Verificar se há problemas com o fetch
-    console.log('Iniciando fetch para calcular taxa de entrega');
-    
-    // Verificar se há problemas com o response
-    console.log('Fetch concluído, verificando response');
-    
-    // Verificar se há problemas com o JSON de resposta
-    console.log('Verificando JSON de resposta');
-    
-    // Verificar se há problemas com o catch
-    console.log('Verificando catch');
-    
-    // Verificar se há problemas com o try
-    console.log('Verificando try');
-    
     const response = await fetch('/api/entrega/calcular-taxa', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: requestBody
+      body: JSON.stringify({ endereco })
     });
-    console.log('Requisição enviada, status:', response.status);
     
     const data = await response.json();
-    console.log('Resposta recebida:', data);
     
     if (data.success) {
       // Verificar se o endereço está fora de Imbituva
@@ -2081,7 +1846,7 @@ async function converterEnderecoECalcularEntrega() {
             </div>
           `;
           elements.deliveryError.style.display = 'block';
-          elements.deliveryInfo.style.display = 'none';
+          if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
         }
       } else {
         // Mostrar informações da entrega normalmente
@@ -2107,23 +1872,30 @@ async function converterEnderecoECalcularEntrega() {
       
       // Atualizar totais com o valor da entrega
       atualizarCarrinho();
+      // Garantir que o resumo do pedido também seja atualizado
+      atualizarResumoPedido();
+      
+      // Atualizar informações de entrega no objeto global
+      window.entregaInfo = {
+        distance: data.distance,
+        price: data.price,
+        coordinates: data.coordinates
+      };
       
       // Esconder o botão de calcular taxa
-      const calcularTaxaBtn = document.getElementById('calcular-taxa-btn');
-      if (calcularTaxaBtn) {
-        calcularTaxaBtn.style.display = 'none';
+      if (elements.calcularTaxaBtn) {
+        elements.calcularTaxaBtn.style.display = 'none';
       }
     } else {
       if (elements.deliveryError) {
         elements.deliveryError.textContent = data.error || 'Erro ao calcular taxa de entrega.';
         elements.deliveryError.style.display = 'block';
-        elements.deliveryInfo.style.display = 'none';
+        if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
       }
       
       // Manter o botão visível em caso de erro
-      const calcularTaxaBtn = document.getElementById('calcular-taxa-btn');
-      if (calcularTaxaBtn) {
-        calcularTaxaBtn.style.display = 'block';
+      if (elements.calcularTaxaBtn) {
+        elements.calcularTaxaBtn.style.display = 'block';
       }
     }
   } catch (error) {
@@ -2131,29 +1903,54 @@ async function converterEnderecoECalcularEntrega() {
     if (elements.deliveryError) {
       elements.deliveryError.textContent = 'Erro ao processar o endereço. Por favor, tente novamente.';
       elements.deliveryError.style.display = 'block';
-      elements.deliveryInfo.style.display = 'none';
+      if (elements.deliveryInfo) elements.deliveryInfo.style.display = 'none';
     }
     
     // Manter o botão visível em caso de erro
-    const calcularTaxaBtn = document.getElementById('calcular-taxa-btn');
-    if (calcularTaxaBtn) {
-      calcularTaxaBtn.style.display = 'block';
+    if (elements.calcularTaxaBtn) {
+      elements.calcularTaxaBtn.style.display = 'block';
     }
   }
 }
 
 // Calcular valor da entrega
 async function calcularEntrega(latitude, longitude) {
+  console.log('Calculando taxa para coordenadas:', latitude, longitude);
+  console.log('Tipo da latitude:', typeof latitude);
+  console.log('Tipo da longitude:', typeof longitude);
+  console.log('Latitude:', latitude);
+  console.log('Longitude:', longitude);
+  
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+    console.error('Latitude e longitude devem ser números');
+    return;
+  }
+  
+  // Mostrar mensagem de carregamento
+  if (elements.deliveryError) {
+    elements.deliveryError.textContent = 'Calculando taxa de entrega...';
+    elements.deliveryError.style.display = 'block';
+    elements.deliveryInfo.style.display = 'none';
+  }
+  
   try {
-    const response = await fetch('/api/entrega/calcular', {
+    // Enviar requisição para calcular entrega
+    console.log('Enviando requisição para calcular entrega');
+    console.log('Latitude a ser enviada:', latitude);
+    console.log('Longitude a ser enviada:', longitude);
+    
+    const res = await fetch('/api/entrega/calcular', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ latitude, longitude })
     });
+    console.log('Response status:', res.status);
+    console.log('Response headers:', [...res.headers.entries()]);
     
-    const data = await response.json();
+    const data = await res.json();
+    console.log('Dados recebidos:', data);
     
     if (data.success) {
       if (data.error) {
@@ -2163,14 +1960,23 @@ async function calcularEntrega(latitude, longitude) {
           elements.deliveryError.style.display = 'block';
           elements.deliveryInfo.style.display = 'none';
         }
+        
+        // Atualizar informações de entrega no objeto global mesmo quando há erro
+        // Isso é importante para que o sistema reconheça que a entrega foi calculada
+        window.entregaInfo = {
+          distance: data.distance || 0,
+          price: data.price || 0,
+          coordinates: { lat: latitude, lng: longitude }
+        };
       } else {
-        // Entrega válida
+        // Entrega válida - definir entregaInfo corretamente
         entregaInfo = {
           distance: data.distance,
           price: data.price,
           coordinates: { lat: latitude, lng: longitude }
         };
         
+        // Exibir informações da entrega
         if (elements.deliveryInfo) {
           elements.deliveryDistance.textContent = data.distance.toFixed(2);
           elements.deliveryPrice.textContent = data.price.toFixed(2).replace('.', ',');
@@ -2185,8 +1991,23 @@ async function calcularEntrega(latitude, longitude) {
         
         // Atualizar totais com o valor da entrega
         atualizarCarrinho();
+        // Garantir que o resumo do pedido também seja atualizado
+        atualizarResumoPedido();
+        
+        // Atualizar informações de entrega no objeto global
+        window.entregaInfo = {
+          distance: data.distance,
+          price: data.price,
+          coordinates: { lat: latitude, lng: longitude }
+        };
+        
+        // Esconder o botão de calcular taxa
+        if (elements.calcularTaxaBtn) {
+          elements.calcularTaxaBtn.style.display = 'none';
+        }
       }
     } else {
+      // Erro no cálculo da entrega
       if (elements.deliveryError) {
         elements.deliveryError.textContent = data.error || 'Erro ao calcular entrega.';
         elements.deliveryError.style.display = 'block';
@@ -2195,6 +2016,9 @@ async function calcularEntrega(latitude, longitude) {
     }
   } catch (error) {
     console.error('Erro ao calcular entrega:', error);
+    console.error('Stack trace:', error.stack);
+    
+    // Exibir erro
     if (elements.deliveryError) {
       elements.deliveryError.textContent = 'Erro ao calcular valor da entrega. Por favor, tente novamente.';
       elements.deliveryError.style.display = 'block';
@@ -2258,6 +2082,5 @@ function atualizarEstadoBotoes() {
     console.log('Botão próximo ativado:', !elements.nextProductBtn.disabled);
   }
 }
-
 
 
